@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+docs/api/
+*.tsbuildinfo
+.DS_Store
+*.log
+.env
+.env.*
+output/
+*.pdf
+!tests/fixtures/*.pdf

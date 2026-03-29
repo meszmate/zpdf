@@ -1,0 +1,97 @@
+{
+  "name": "zpdf",
+  "version": "1.0.0",
+  "description": "A comprehensive, zero-dependency PDF library for creating, parsing, modifying, and manipulating PDF documents",
+  "type": "module",
+  "main": "./dist/cjs/index.cjs",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/types/index.d.cts",
+        "default": "./dist/cjs/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\" \"examples/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\" \"examples/**/*.ts\"",
+    "typecheck": "tsc --noEmit",
+    "docs": "typedoc --out docs/api src/index.ts",
+    "prepublishOnly": "npm run build",
+    "example:basic": "tsx examples/create-basic.ts",
+    "example:tables": "tsx examples/create-tables.ts",
+    "example:forms": "tsx examples/create-forms.ts",
+    "example:graphics": "tsx examples/create-graphics.ts",
+    "example:images": "tsx examples/create-images.ts",
+    "example:merge": "tsx examples/merge-pdfs.ts",
+    "example:encrypt": "tsx examples/encrypt-pdf.ts",
+    "example:watermark": "tsx examples/watermark.ts",
+    "example:barcodes": "tsx examples/barcodes.ts",
+    "example:parse": "tsx examples/parse-pdf.ts",
+    "example:accessibility": "tsx examples/accessibility.ts"
+  },
+  "keywords": [
+    "pdf",
+    "pdf-generator",
+    "pdf-parser",
+    "pdf-reader",
+    "pdf-writer",
+    "pdf-merge",
+    "pdf-split",
+    "pdf-forms",
+    "pdf-encryption",
+    "pdf-annotations",
+    "pdf-bookmarks",
+    "pdf-tables",
+    "pdf-images",
+    "pdf-barcodes",
+    "qr-code",
+    "pdf-watermark",
+    "pdf-accessibility",
+    "zero-dependency",
+    "typescript"
+  ],
+  "author": "meszmate",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/meszmate/zpdf.git"
+  },
+  "bugs": {
+    "url": "https://github.com/meszmate/zpdf/issues"
+  },
+  "homepage": "https://github.com/meszmate/zpdf#readme",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.56.0",
+    "prettier": "^3.2.0",
+    "tsup": "^8.0.0",
+    "tsx": "^4.7.0",
+    "typedoc": "^0.25.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.2.0"
+  }
+}
