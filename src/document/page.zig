@@ -550,6 +550,77 @@ pub const Page = struct {
         try writer.writeAll("Q\n");
     }
 
+    // -- Clipping methods --
+
+    /// Clip mode for clipping paths.
+    pub const ClipMode = @import("../graphics/state.zig").ClipMode;
+
+    /// Options for clipping.
+    pub const ClipOptions = struct {
+        mode: ClipMode = .non_zero,
+    };
+
+    /// Begin a clipping region using a rectangle.
+    pub fn beginClipRect(self: *Page, x: f32, y: f32, width: f32, height: f32, mode: ClipMode) !void {
+        const writer = self.contentWriter();
+        try writer.writeAll("q\n");
+        try writer.print("{d:.2} {d:.2} {d:.2} {d:.2} re\n", .{ x, y, width, height });
+        switch (mode) {
+            .non_zero => try writer.writeAll("W n\n"),
+            .even_odd => try writer.writeAll("W* n\n"),
+        }
+    }
+
+    /// Begin a clipping region using a circle.
+    pub fn beginClipCircle(self: *Page, cx: f32, cy: f32, r: f32, mode: ClipMode) !void {
+        try self.beginClipEllipse(cx, cy, r, r, mode);
+    }
+
+    /// Begin a clipping region using an ellipse.
+    pub fn beginClipEllipse(self: *Page, cx: f32, cy: f32, rx: f32, ry: f32, mode: ClipMode) !void {
+        const writer = self.contentWriter();
+        try writer.writeAll("q\n");
+
+        const k: f32 = 0.5522847498;
+        const kx = k * rx;
+        const ky = k * ry;
+
+        // Start at right point of ellipse
+        try writer.print("{d:.2} {d:.2} m\n", .{ cx + rx, cy });
+        // Top-right quadrant
+        try writer.print("{d:.2} {d:.2} {d:.2} {d:.2} {d:.2} {d:.2} c\n", .{ cx + rx, cy + ky, cx + kx, cy + ry, cx, cy + ry });
+        // Top-left quadrant
+        try writer.print("{d:.2} {d:.2} {d:.2} {d:.2} {d:.2} {d:.2} c\n", .{ cx - kx, cy + ry, cx - rx, cy + ky, cx - rx, cy });
+        // Bottom-left quadrant
+        try writer.print("{d:.2} {d:.2} {d:.2} {d:.2} {d:.2} {d:.2} c\n", .{ cx - rx, cy - ky, cx - kx, cy - ry, cx, cy - ry });
+        // Bottom-right quadrant
+        try writer.print("{d:.2} {d:.2} {d:.2} {d:.2} {d:.2} {d:.2} c\n", .{ cx + kx, cy - ry, cx + rx, cy - ky, cx + rx, cy });
+        try writer.writeAll("h\n");
+
+        switch (mode) {
+            .non_zero => try writer.writeAll("W n\n"),
+            .even_odd => try writer.writeAll("W* n\n"),
+        }
+    }
+
+    /// Begin a clipping region using a custom path (from PathBuilder).
+    pub fn beginClipPath(self: *Page, path: *const PathBuilder, mode: ClipMode) !void {
+        const writer = self.contentWriter();
+        try writer.writeAll("q\n");
+        try writer.writeAll(path.getCommands());
+        try writer.writeAll("\n");
+        switch (mode) {
+            .non_zero => try writer.writeAll("W n\n"),
+            .even_odd => try writer.writeAll("W* n\n"),
+        }
+    }
+
+    /// End the current clipping region (restores graphics state).
+    pub fn endClip(self: *Page) !void {
+        const writer = self.contentWriter();
+        try writer.writeAll("Q\n");
+    }
+
     /// Draws an image on the page using a previously registered image handle.
     pub fn drawImage(self: *Page, image: ImageHandle, options: ImageOptions) !void {
         _ = image;

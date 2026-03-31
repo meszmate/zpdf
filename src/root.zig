@@ -90,6 +90,7 @@ pub const gradient = graphics.gradient_mod;
 pub const LinearGradient = gradient.LinearGradient;
 pub const RadialGradient = gradient.RadialGradient;
 pub const ColorStop = gradient.ColorStop;
+pub const ClipMode = graphics.state.ClipMode;
 
 // ── Text ─────────────────────────────────────────────────────────────
 pub const text = struct {
@@ -121,6 +122,15 @@ pub const form = struct {
     pub const form_builder = @import("form/form_builder.zig");
 };
 pub const FormBuilder = form.form_builder.FormBuilder;
+
+// ── Layout ──────────────────────────────────────────────────────────
+pub const layout = struct {
+    pub const header_footer = @import("layout/header_footer.zig");
+};
+pub const HeaderFooter = layout.header_footer.HeaderFooter;
+pub const HFElement = layout.header_footer.HFElement;
+pub const HFContent = layout.header_footer.HFContent;
+pub const HFPosition = layout.header_footer.HFPosition;
 
 // ── Writer ───────────────────────────────────────────────────────────
 pub const writer = struct {
