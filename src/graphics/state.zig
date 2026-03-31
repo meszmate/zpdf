@@ -3,6 +3,14 @@ const Allocator = std.mem.Allocator;
 const color_mod = @import("../color/color.zig");
 const Color = color_mod.Color;
 
+/// Clip mode for clipping paths.
+pub const ClipMode = enum {
+    /// W operator - non-zero winding number rule
+    non_zero,
+    /// W* operator - even-odd rule
+    even_odd,
+};
+
 /// PDF line cap style.
 pub const LineCap = enum(u8) {
     butt = 0,
