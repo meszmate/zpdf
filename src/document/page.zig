@@ -7,6 +7,7 @@ const Ref = types.Ref;
 const color_mod = @import("../color/color.zig");
 const Color = color_mod.Color;
 const StandardFont = @import("../font/standard_fonts.zig").StandardFont;
+const rich_text = @import("../text/rich_text.zig");
 
 /// A 2D point.
 pub const Point = struct {
@@ -387,6 +388,12 @@ pub const Page = struct {
             }
         }
         try writer.writeAll(") Tj\n");
+    }
+
+    /// Draws rich text with mixed fonts, sizes, colors and styles.
+    /// Returns the total height consumed by the text block.
+    pub fn drawRichText(self: *Page, spans: []const rich_text.TextSpan, options: rich_text.RichTextOptions) !f32 {
+        return rich_text.drawRichText(self, spans, options);
     }
 
     /// Draws a rectangle.
