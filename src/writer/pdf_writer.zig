@@ -12,11 +12,18 @@ const XrefEntry = xref_writer.XrefEntry;
 const Document = @import("../document/document.zig").Document;
 const Page = @import("../document/page.zig").Page;
 const ObjectStore = @import("../core/object_store.zig").ObjectStore;
+const header_footer = @import("../layout/header_footer.zig");
 
 /// PDF file serializer. Converts a Document into a complete PDF byte stream.
 pub const PdfWriter = struct {
     /// Serializes a full PDF document to bytes.
     pub fn writePdf(allocator: Allocator, doc: *Document) ![]u8 {
+        // Apply headers/footers before building page objects
+        if (doc.header != null or doc.footer != null) {
+            const page_ptrs = doc.pages.items;
+            try header_footer.applyHeadersFooters(page_ptrs, doc.header, doc.footer, 1);
+        }
+
         var buffer = ByteBuffer.init(allocator);
         defer buffer.deinit();
 

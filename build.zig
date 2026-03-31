@@ -24,6 +24,7 @@ pub fn build(b: *std.Build) void {
         "barcodes",
         "parse_pdf",
         "accessibility",
+        "headers_footers",
     };
 
     for (examples) |example_name| {
@@ -68,6 +69,7 @@ pub fn build(b: *std.Build) void {
         "tests/barcode_tests.zig",
         "tests/utils_tests.zig",
         "tests/integration_tests.zig",
+        "tests/header_footer_tests.zig",
     };
 
     const test_step = b.step("test", "Run unit tests");
