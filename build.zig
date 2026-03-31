@@ -30,6 +30,7 @@ pub fn build(b: *std.Build) void {
         "create_gradients",
         "headers_footers",
         "clipping",
+        "pdfa_document",
     };
 
     for (examples) |example_name| {
@@ -80,6 +81,7 @@ pub fn build(b: *std.Build) void {
         "tests/stream_writer_tests.zig",
         "tests/rich_text_tests.zig",
         "tests/header_footer_tests.zig",
+        "tests/pdfa_tests.zig",
     };
 
     const test_step = b.step("test", "Run unit tests");
