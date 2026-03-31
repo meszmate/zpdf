@@ -25,6 +25,11 @@ pub fn build(b: *std.Build) void {
         "parse_pdf",
         "accessibility",
         "incremental_update",
+        "streaming",
+        "rich_text",
+        "create_gradients",
+        "headers_footers",
+        "clipping",
     };
 
     for (examples) |example_name| {
@@ -68,8 +73,13 @@ pub fn build(b: *std.Build) void {
         "tests/security_tests.zig",
         "tests/barcode_tests.zig",
         "tests/utils_tests.zig",
+        "tests/gradient_tests.zig",
+        "tests/clip_tests.zig",
         "tests/integration_tests.zig",
         "tests/incremental_tests.zig",
+        "tests/stream_writer_tests.zig",
+        "tests/rich_text_tests.zig",
+        "tests/header_footer_tests.zig",
     };
 
     const test_step = b.step("test", "Run unit tests");

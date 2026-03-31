@@ -81,19 +81,29 @@ pub const graphics = struct {
     pub const path_builder = @import("graphics/path_builder.zig");
     pub const transform = @import("graphics/transform.zig");
     pub const state = @import("graphics/state.zig");
+    pub const gradient_mod = @import("graphics/gradient.zig");
 };
 pub const GfxPathBuilder = graphics.path_builder.PathBuilder;
 pub const Matrix = @import("utils/math.zig").Matrix;
 pub const GraphicsState = graphics.state.GraphicsState;
+pub const gradient = graphics.gradient_mod;
+pub const LinearGradient = gradient.LinearGradient;
+pub const RadialGradient = gradient.RadialGradient;
+pub const ColorStop = gradient.ColorStop;
+pub const ClipMode = graphics.state.ClipMode;
 
 // ── Text ─────────────────────────────────────────────────────────────
 pub const text = struct {
     pub const text_style = @import("text/text_style.zig");
     pub const text_layout = @import("text/text_layout.zig");
     pub const text_renderer = @import("text/text_renderer.zig");
+    pub const rich_text = @import("text/rich_text.zig");
 };
 pub const TextStyle = text.text_style.TextStyle;
 pub const Alignment = text.text_style.Alignment;
+pub const TextSpan = text.rich_text.TextSpan;
+pub const RichTextOptions = text.rich_text.RichTextOptions;
+pub const RichTextAlignment = text.rich_text.RichTextAlignment;
 
 // ── Image ────────────────────────────────────────────────────────────
 pub const image = struct {
@@ -117,12 +127,24 @@ pub const form = struct {
 };
 pub const FormBuilder = form.form_builder.FormBuilder;
 
+// ── Layout ──────────────────────────────────────────────────────────
+pub const layout = struct {
+    pub const header_footer = @import("layout/header_footer.zig");
+};
+pub const HeaderFooter = layout.header_footer.HeaderFooter;
+pub const HFElement = layout.header_footer.HFElement;
+pub const HFContent = layout.header_footer.HFContent;
+pub const HFPosition = layout.header_footer.HFPosition;
+
 // ── Writer ───────────────────────────────────────────────────────────
 pub const writer = struct {
     pub const pdf_writer = @import("writer/pdf_writer.zig");
     pub const object_serializer = @import("writer/object_serializer.zig");
     pub const xref_writer = @import("writer/xref_writer.zig");
+    pub const stream_writer = @import("writer/stream_writer.zig");
 };
+pub const countingWriter = writer.stream_writer.countingWriter;
+pub const CountingWriter = writer.stream_writer.CountingWriter;
 
 // ── Compress ─────────────────────────────────────────────────────────
 pub const compress = struct {

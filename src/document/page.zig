@@ -7,6 +7,7 @@ const Ref = types.Ref;
 const color_mod = @import("../color/color.zig");
 const Color = color_mod.Color;
 const StandardFont = @import("../font/standard_fonts.zig").StandardFont;
+const rich_text = @import("../text/rich_text.zig");
 
 /// A 2D point.
 pub const Point = struct {
@@ -33,21 +34,31 @@ pub const ImageResource = struct {
     name: []const u8,
 };
 
-/// Page-level resources (fonts, images, etc.).
+/// A pattern resource registered on a page.
+pub const PatternResource = struct {
+    ref: Ref,
+    name: []const u8,
+};
+
+/// Page-level resources (fonts, images, patterns, etc.).
 pub const Resources = struct {
     fonts: StringHashMap(FontResource),
     images: ArrayList(ImageResource),
+    patterns: StringHashMap(PatternResource),
     allocator: Allocator,
     font_count: u32,
     image_count: u32,
+    pattern_count: u32,
 
     pub fn init(allocator: Allocator) Resources {
         return .{
             .fonts = .{},
             .images = .{},
+            .patterns = .{},
             .allocator = allocator,
             .font_count = 0,
             .image_count = 0,
+            .pattern_count = 0,
         };
     }
 
@@ -58,6 +69,11 @@ pub const Resources = struct {
         }
         self.fonts.deinit(self.allocator);
         self.images.deinit(self.allocator);
+        var pit = self.patterns.iterator();
+        while (pit.next()) |entry| {
+            self.allocator.free(entry.value_ptr.name);
+        }
+        self.patterns.deinit(self.allocator);
     }
 };
 
@@ -267,6 +283,24 @@ pub const Page = struct {
         return name;
     }
 
+    /// Registers a pattern on this page and returns the resource name (e.g. "P1").
+    pub fn addPattern(self: *Page, pattern_name: []const u8, ref: Ref) ![]const u8 {
+        if (self.resources.patterns.get(pattern_name)) |existing| {
+            return existing.name;
+        }
+        self.resources.pattern_count += 1;
+        const name = try std.fmt.allocPrint(self.allocator, "P{d}", .{self.resources.pattern_count});
+        try self.resources.patterns.put(self.allocator, pattern_name, .{ .ref = ref, .name = name });
+        return name;
+    }
+
+    /// Sets the fill color to a pattern (gradient). Writes `/Pattern cs /name scn` to the content stream.
+    pub fn setGradientFill(self: *Page, pattern_name: []const u8) !void {
+        const writer = self.contentWriter();
+        try writer.writeAll("/Pattern cs\n");
+        try writer.print("/{s} scn\n", .{pattern_name});
+    }
+
     fn contentWriter(self: *Page) ArrayList(u8).Writer {
         return self.content.writer(self.allocator);
     }
@@ -354,6 +388,12 @@ pub const Page = struct {
             }
         }
         try writer.writeAll(") Tj\n");
+    }
+
+    /// Draws rich text with mixed fonts, sizes, colors and styles.
+    /// Returns the total height consumed by the text block.
+    pub fn drawRichText(self: *Page, spans: []const rich_text.TextSpan, options: rich_text.RichTextOptions) !f32 {
+        return rich_text.drawRichText(self, spans, options);
     }
 
     /// Draws a rectangle.
@@ -514,6 +554,77 @@ pub const Page = struct {
         try writer.writeAll("\n");
 
         try writeFillStroke(writer, options.color != null, options.border_color != null);
+        try writer.writeAll("Q\n");
+    }
+
+    // -- Clipping methods --
+
+    /// Clip mode for clipping paths.
+    pub const ClipMode = @import("../graphics/state.zig").ClipMode;
+
+    /// Options for clipping.
+    pub const ClipOptions = struct {
+        mode: ClipMode = .non_zero,
+    };
+
+    /// Begin a clipping region using a rectangle.
+    pub fn beginClipRect(self: *Page, x: f32, y: f32, width: f32, height: f32, mode: ClipMode) !void {
+        const writer = self.contentWriter();
+        try writer.writeAll("q\n");
+        try writer.print("{d:.2} {d:.2} {d:.2} {d:.2} re\n", .{ x, y, width, height });
+        switch (mode) {
+            .non_zero => try writer.writeAll("W n\n"),
+            .even_odd => try writer.writeAll("W* n\n"),
+        }
+    }
+
+    /// Begin a clipping region using a circle.
+    pub fn beginClipCircle(self: *Page, cx: f32, cy: f32, r: f32, mode: ClipMode) !void {
+        try self.beginClipEllipse(cx, cy, r, r, mode);
+    }
+
+    /// Begin a clipping region using an ellipse.
+    pub fn beginClipEllipse(self: *Page, cx: f32, cy: f32, rx: f32, ry: f32, mode: ClipMode) !void {
+        const writer = self.contentWriter();
+        try writer.writeAll("q\n");
+
+        const k: f32 = 0.5522847498;
+        const kx = k * rx;
+        const ky = k * ry;
+
+        // Start at right point of ellipse
+        try writer.print("{d:.2} {d:.2} m\n", .{ cx + rx, cy });
+        // Top-right quadrant
+        try writer.print("{d:.2} {d:.2} {d:.2} {d:.2} {d:.2} {d:.2} c\n", .{ cx + rx, cy + ky, cx + kx, cy + ry, cx, cy + ry });
+        // Top-left quadrant
+        try writer.print("{d:.2} {d:.2} {d:.2} {d:.2} {d:.2} {d:.2} c\n", .{ cx - kx, cy + ry, cx - rx, cy + ky, cx - rx, cy });
+        // Bottom-left quadrant
+        try writer.print("{d:.2} {d:.2} {d:.2} {d:.2} {d:.2} {d:.2} c\n", .{ cx - rx, cy - ky, cx - kx, cy - ry, cx, cy - ry });
+        // Bottom-right quadrant
+        try writer.print("{d:.2} {d:.2} {d:.2} {d:.2} {d:.2} {d:.2} c\n", .{ cx + kx, cy - ry, cx + rx, cy - ky, cx + rx, cy });
+        try writer.writeAll("h\n");
+
+        switch (mode) {
+            .non_zero => try writer.writeAll("W n\n"),
+            .even_odd => try writer.writeAll("W* n\n"),
+        }
+    }
+
+    /// Begin a clipping region using a custom path (from PathBuilder).
+    pub fn beginClipPath(self: *Page, path: *const PathBuilder, mode: ClipMode) !void {
+        const writer = self.contentWriter();
+        try writer.writeAll("q\n");
+        try writer.writeAll(path.getCommands());
+        try writer.writeAll("\n");
+        switch (mode) {
+            .non_zero => try writer.writeAll("W n\n"),
+            .even_odd => try writer.writeAll("W* n\n"),
+        }
+    }
+
+    /// End the current clipping region (restores graphics state).
+    pub fn endClip(self: *Page) !void {
+        const writer = self.contentWriter();
         try writer.writeAll("Q\n");
     }
 
