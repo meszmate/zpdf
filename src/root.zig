@@ -122,7 +122,10 @@ pub const writer = struct {
     pub const pdf_writer = @import("writer/pdf_writer.zig");
     pub const object_serializer = @import("writer/object_serializer.zig");
     pub const xref_writer = @import("writer/xref_writer.zig");
+    pub const stream_writer = @import("writer/stream_writer.zig");
 };
+pub const countingWriter = writer.stream_writer.countingWriter;
+pub const CountingWriter = writer.stream_writer.CountingWriter;
 
 // ── Compress ─────────────────────────────────────────────────────────
 pub const compress = struct {
