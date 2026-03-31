@@ -24,6 +24,7 @@ pub fn build(b: *std.Build) void {
         "barcodes",
         "parse_pdf",
         "accessibility",
+        "clipping",
     };
 
     for (examples) |example_name| {
@@ -67,6 +68,7 @@ pub fn build(b: *std.Build) void {
         "tests/security_tests.zig",
         "tests/barcode_tests.zig",
         "tests/utils_tests.zig",
+        "tests/clip_tests.zig",
         "tests/integration_tests.zig",
     };
 
