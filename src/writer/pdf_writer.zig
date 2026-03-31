@@ -182,12 +182,49 @@ pub const PdfWriter = struct {
             }
         }
 
+        // -- Copy AcroForm objects from document object store --
+        // The FormBuilder stores field objects and the AcroForm dict in doc.object_store.
+        // We need to copy them into the writer's store with remapped object numbers.
+        var acroform_new_ref: ?Ref = null;
+        {
+            // Build a mapping from old obj_num to new Ref
+            var ref_map = std.AutoHashMapUnmanaged(u32, Ref){};
+            defer ref_map.deinit(allocator);
+
+            // First pass: allocate new refs for all doc.object_store objects
+            for (doc.object_store.objects.items) |entry| {
+                const new_ref = try store.allocate();
+                try ref_map.put(allocator, entry.ref.obj_num, new_ref);
+            }
+
+            // Second pass: copy objects, remapping internal references
+            for (doc.object_store.objects.items) |entry| {
+                const new_ref = ref_map.get(entry.ref.obj_num).?;
+
+                if (entry.object) |obj| {
+                    // Remap references within this object
+                    const remapped = try remapRefsAuto(allocator, obj, &ref_map);
+                    store.put(new_ref, remapped);
+
+                    // Check if this is the AcroForm dictionary (has "Fields" key)
+                    if (obj == .dict_obj) {
+                        if (obj.dict_obj.get("Fields")) |_| {
+                            acroform_new_ref = new_ref;
+                        }
+                    }
+                }
+            }
+        }
+
         // -- Build Catalog --
         const catalog_ref = try store.allocate();
         {
             var catalog_dict = types.pdfDict(allocator);
             try catalog_dict.dict_obj.put(allocator,"Type", types.pdfName("Catalog"));
             try catalog_dict.dict_obj.put(allocator,"Pages", types.pdfRef(pages_ref.obj_num, pages_ref.gen_num));
+            if (acroform_new_ref) |af_ref| {
+                try catalog_dict.dict_obj.put(allocator,"AcroForm", types.pdfRef(af_ref.obj_num, af_ref.gen_num));
+            }
             store.put(catalog_ref, catalog_dict);
         }
 
@@ -234,6 +271,36 @@ pub const PdfWriter = struct {
         try object_serializer.writeObject(buf, obj);
     }
 };
+
+/// Recursively remap indirect references within a PdfObject to use new object numbers.
+fn remapRefsAuto(allocator: Allocator, obj: PdfObject, ref_map: *const std.AutoHashMapUnmanaged(u32, Ref)) Allocator.Error!PdfObject {
+    switch (obj) {
+        .ref_obj => |ref| {
+            if (ref_map.get(ref.obj_num)) |new_ref| {
+                return types.pdfRef(new_ref.obj_num, new_ref.gen_num);
+            }
+            return obj;
+        },
+        .array_obj => |arr| {
+            var new_arr = types.pdfArray(allocator);
+            for (arr.list.items) |item| {
+                const remapped = try remapRefsAuto(allocator, item, ref_map);
+                try new_arr.array_obj.append(remapped);
+            }
+            return new_arr;
+        },
+        .dict_obj => |dict| {
+            var new_dict = types.pdfDict(allocator);
+            var it = dict.iterator();
+            while (it.next()) |entry| {
+                const remapped = try remapRefsAuto(allocator, entry.value_ptr.*, ref_map);
+                try new_dict.dict_obj.put(allocator, entry.key_ptr.*, remapped);
+            }
+            return new_dict;
+        },
+        else => return obj,
+    }
+}
 
 // -- Tests --
 
