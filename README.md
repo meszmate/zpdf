@@ -1,894 +1,679 @@
 # zpdf
 
-A comprehensive, zero-dependency PDF library for creating, parsing, modifying, and manipulating PDF documents in pure TypeScript.
+A comprehensive, zero-dependency PDF library for creating, parsing, modifying, and manipulating PDF documents in pure Zig.
 
-[![npm version](https://img.shields.io/npm/v/zpdf.svg)](https://www.npmjs.com/package/zpdf)
-[![license](https://img.shields.io/npm/l/zpdf.svg)](https://github.com/meszmate/zpdf/blob/main/LICENSE)
-[![build](https://img.shields.io/github/actions/workflow/status/meszmate/zpdf/ci.yml?branch=main)](https://github.com/meszmate/zpdf/actions)
-[![coverage](https://img.shields.io/codecov/c/github/meszmate/zpdf)](https://codecov.io/gh/meszmate/zpdf)
+<!-- Badges -->
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Zig](https://img.shields.io/badge/Zig-0.15.0+-f7a41d.svg)](https://ziglang.org/)
+![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20Windows%20%7C%20WASM-lightgrey)
 
 ---
 
 ## Features
 
 ### PDF Creation
-- Rich text rendering with alignment, line spacing, and word wrapping
-- JPEG and PNG image embedding
-- Vector graphics: lines, rectangles, circles, ellipses, polygons, and custom paths
-- Tables with headers, column spans, custom styling, and automatic multi-page overflow
-- Interactive form fields: text inputs, checkboxes, radio buttons, dropdowns, listboxes, buttons, and signature fields
-- Barcodes: Code 39, Code 128, EAN-13, and QR codes
-- Watermarks with configurable text, rotation, and opacity
-- Repeating headers and footers with page number context
+- Create PDF documents from scratch with full control over structure
+- Add multiple pages with configurable sizes and orientations
+- Set document metadata (title, author, subject, keywords, creator)
+- Stream-based output for memory-efficient generation
 
 ### PDF Parsing
-- Full text extraction with position, font, and size information
-- Image extraction from existing PDFs
-- Metadata and document info reading
-- Form field discovery and value reading
-- Outline / bookmark tree parsing
+- Parse existing PDF files into structured document objects
+- Extract text content from pages
+- Read document metadata and properties
+- Navigate page trees and object references
+- Handle cross-reference tables and streams
 
 ### PDF Modification
-- Merge multiple PDFs into one (with optional page selection)
-- Split PDFs by page or by custom ranges
-- Add and remove pages
-- Page rotation
-- Apply watermarks to existing documents
+- Merge multiple PDF documents into one
+- Split documents by page ranges
+- Add watermarks (text and image) to existing pages
+- Insert, remove, and reorder pages
 
 ### Security
-- RC4-40 encryption
-- RC4-128 encryption
-- AES-128 encryption
-- AES-256 encryption
-- Granular permission control (printing, copying, modifying, annotating, and more)
+- AES-128 and AES-256 encryption
+- RC4 encryption (40-bit and 128-bit)
+- User and owner passwords
+- Granular permissions (print, copy, modify, annotate, fill forms, extract, assemble)
 
 ### Advanced
-- Bookmarks / outlines with nested hierarchy
-- Annotations: text notes, links, highlights, underlines, strikeouts, stamps, free text, and ink
-- Optional content layers (OCG)
-- Tagged PDF for accessibility (structure tree with standard tags)
-- PDF/A compliance metadata (XMP)
-- Linear and radial gradients
-- Tiling and shading patterns
-- Clipping paths
-- Affine transformations (translate, rotate, scale, skew)
+- Interactive forms (AcroForms): text fields, checkboxes, radio buttons, dropdowns, buttons
+- Annotations: links, text notes, highlights, underlines, strikeouts
+- Bookmarks / document outline with nested hierarchy
+- Barcode generation: Code 128, Code 39, EAN-13, EAN-8, UPC-A, QR Code, Data Matrix
+- Optional Content Groups (layers) for toggling visibility
+- Tagged PDF / PDF/UA for accessibility compliance
+- XMP metadata
 
 ### Font Support
-- All 14 standard PDF fonts with complete glyph metrics
-- TrueType font embedding with automatic subsetting
-- Unicode text support via ToUnicode CMaps
-- WinAnsi and MacRoman encodings
+- All 14 PDF standard fonts (Helvetica, Times, Courier, Symbol, ZapfDingbats and variants)
+- Built-in font metrics for precise text measurement
+- Text wrapping with word-boundary and character-boundary breaking
+- Kerning and character spacing control
+
+### Graphics
+- Lines, rectangles, circles, ellipses, polygons
+- Bezier curves and custom paths via PathBuilder
+- Fill and stroke with configurable colors and line styles
+- Dashed lines, line caps, line joins
+- Graphics state stack (save/restore)
+- Coordinate transforms (translate, rotate, scale)
+
+### Color
+- RGB, CMYK, and grayscale color spaces
+- Named color presets
+- Opacity / transparency support
+
+### Images
+- JPEG embedding
+- PNG embedding (with alpha channel)
+- Image scaling and positioning
+- Raw pixel data support
+
+### Tables
+- Row and column layout with configurable widths
+- Cell padding and alignment (left, center, right)
+- Borders with per-cell styling
+- Header rows and column spans
+- Automatic page breaks for long tables
+- Alternating row colors
 
 ---
 
 ## Installation
 
-```bash
-# npm
-npm install zpdf
+Add zpdf as a dependency in your `build.zig.zon`:
 
-# yarn
-yarn add zpdf
+```zig
+// In your build.zig.zon
+.dependencies = .{
+    .zpdf = .{
+        .url = "https://github.com/meszmate/zpdf/archive/refs/tags/v1.0.0.tar.gz",
+        .hash = "...",
+    },
+},
+```
 
-# pnpm
-pnpm add zpdf
+Then in your `build.zig`:
+
+```zig
+const zpdf_mod = b.dependency("zpdf", .{}).module("zpdf");
+exe.root_module.addImport("zpdf", zpdf_mod);
 ```
 
 ---
 
 ## Quick Start
 
-```typescript
-import { PDFDocument, rgb } from 'zpdf';
-import { writeFileSync } from 'node:fs';
+```zig
+const std = @import("std");
+const zpdf = @import("zpdf");
 
-const doc = PDFDocument.create({ title: 'Hello World' });
-const font = doc.getStandardFont('Helvetica');
-const page = doc.addPage({ size: 'A4' });
+pub fn main() !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
 
-page.drawText('Hello, zpdf!', {
-  x: 50,
-  y: 750,
-  font,
-  fontSize: 24,
-  color: rgb(0, 51, 153),
-});
+    var doc = zpdf.Document.init(allocator);
+    defer doc.deinit();
 
-const bytes = doc.save();
-writeFileSync('hello.pdf', bytes);
+    doc.setTitle("Hello World");
+    var page = try doc.addPage(.a4);
+    try page.drawText("Hello, zpdf!", .{
+        .x = 50,
+        .y = 750,
+        .font = .helvetica,
+        .font_size = 24,
+        .color = zpdf.rgb(0, 51, 153),
+    });
+
+    const bytes = try doc.save(allocator);
+    defer allocator.free(bytes);
+
+    const file = try std.fs.cwd().createFile("hello.pdf", .{});
+    defer file.close();
+    try file.writeAll(bytes);
+}
 ```
 
 ---
 
 ## Examples
 
-### Creating a Document with Text
-
-```typescript
-import { PDFDocument, rgb } from 'zpdf';
-
-const doc = PDFDocument.create({
-  title: 'Text Demo',
-  author: 'zpdf',
-});
-
-const font = doc.getStandardFont('Helvetica');
-const boldFont = doc.getStandardFont('Helvetica-Bold');
-const page = doc.addPage({ size: 'Letter' });
-
-// Title
-page.drawText('Document Title', {
-  x: 50,
-  y: 720,
-  font: boldFont,
-  fontSize: 28,
-  color: rgb(0, 0, 0),
-});
-
-// Body paragraph with word wrap
-page.drawText(
-  'This is a paragraph of text that will automatically wrap within the specified maximum width. zpdf handles line breaking and text layout for you.',
-  {
-    x: 50,
-    y: 680,
-    font,
-    fontSize: 12,
-    maxWidth: 500,
-    lineHeight: 18,
-    color: rgb(60, 60, 60),
-  },
-);
-
-// Right-aligned text
-page.drawText('Right-aligned text', {
-  x: 562,
-  y: 600,
-  font,
-  fontSize: 14,
-  alignment: 'right',
-});
-
-const bytes = doc.save();
-```
-
 ### Drawing Shapes
 
-```typescript
-import { PDFDocument, rgb, cmyk, PathBuilder } from 'zpdf';
+```zig
+const zpdf = @import("zpdf");
 
-const doc = PDFDocument.create();
-const page = doc.addPage({ size: 'A4' });
+var page = try doc.addPage(.a4);
 
-// Rectangle with fill and stroke
-page.drawRect({
-  x: 50,
-  y: 700,
-  width: 200,
-  height: 100,
-  color: rgb(41, 128, 185),
-  borderColor: rgb(0, 0, 0),
-  borderWidth: 2,
+// Rectangle
+try page.drawRect(.{
+    .x = 50,
+    .y = 700,
+    .width = 200,
+    .height = 100,
+    .fill_color = zpdf.rgb(230, 240, 255),
+    .stroke_color = zpdf.rgb(0, 51, 153),
+    .line_width = 2,
 });
 
 // Circle
-page.drawCircle({
-  cx: 400,
-  cy: 750,
-  r: 50,
-  color: rgb(231, 76, 60),
-});
-
-// Ellipse
-page.drawEllipse({
-  cx: 300,
-  cy: 550,
-  rx: 80,
-  ry: 40,
-  color: cmyk(0, 100, 100, 0),
+try page.drawCircle(.{
+    .cx = 400,
+    .cy = 750,
+    .radius = 50,
+    .fill_color = zpdf.cmyk(0, 0.8, 0.9, 0),
 });
 
 // Line
-page.drawLine({
-  x1: 50,
-  y1: 450,
-  x2: 550,
-  y2: 450,
-  color: rgb(0, 0, 0),
-  lineWidth: 1.5,
-  dashPattern: [5, 3],
+try page.drawLine(.{
+    .x1 = 50,
+    .y1 = 600,
+    .x2 = 550,
+    .y2 = 600,
+    .color = zpdf.gray(0.5),
+    .line_width = 1,
+    .dash_pattern = &.{ 5, 3 },
 });
-
-// Polygon
-page.drawPolygon({
-  points: [
-    { x: 300, y: 400 },
-    { x: 350, y: 320 },
-    { x: 250, y: 320 },
-  ],
-  color: rgb(46, 204, 113),
-  borderColor: rgb(39, 174, 96),
-  borderWidth: 2,
-});
-
-const bytes = doc.save();
 ```
 
 ### Tables
 
-```typescript
-import { PDFDocument, Table, TableCell, rgb } from 'zpdf';
+```zig
+const zpdf = @import("zpdf");
 
-const doc = PDFDocument.create();
-const font = doc.getStandardFont('Helvetica');
-const boldFont = doc.getStandardFont('Helvetica-Bold');
-const page = doc.addPage({ size: 'A4' });
-
-const table = new Table({
-  borderColor: rgb(200, 200, 200),
-  borderWidth: 0.5,
+var table = zpdf.Table.init(allocator, .{
+    .columns = &.{
+        .{ .width = .{ .fixed = 60 } },
+        .{ .width = .{ .flex = 1 } },
+        .{ .width = .{ .fixed = 80 }, .alignment = .right },
+    },
+    .header_style = .{
+        .font = .helvetica_bold,
+        .fill_color = zpdf.rgb(0, 51, 153),
+        .text_color = zpdf.rgb(255, 255, 255),
+    },
+    .alternating_row_colors = .{
+        zpdf.rgb(255, 255, 255),
+        zpdf.rgb(240, 245, 255),
+    },
 });
+defer table.deinit();
 
-table.setColumnWidths([100, 200, 'auto', 100]);
+try table.addHeader(&.{ "ID", "Name", "Price" });
+try table.addRow(&.{ "001", "Widget", "$9.99" });
+try table.addRow(&.{ "002", "Gadget", "$24.99" });
+try table.addRow(&.{ "003", "Doohickey", "$4.99" });
 
-table.addHeaderRow([
-  new TableCell('ID', { font: boldFont, backgroundColor: rgb(52, 73, 94), textColor: rgb(255, 255, 255) }),
-  new TableCell('Name', { font: boldFont, backgroundColor: rgb(52, 73, 94), textColor: rgb(255, 255, 255) }),
-  new TableCell('Description', { font: boldFont, backgroundColor: rgb(52, 73, 94), textColor: rgb(255, 255, 255) }),
-  new TableCell('Price', { font: boldFont, backgroundColor: rgb(52, 73, 94), textColor: rgb(255, 255, 255) }),
-]);
-
-table.addRow(['001', 'Widget A', 'A high-quality widget', '$19.99']);
-table.addRow(['002', 'Widget B', 'An economy widget', '$9.99']);
-table.addRow(['003', 'Widget C', 'A premium widget with extras', '$29.99']);
-
-page.drawTable(table, {
-  x: 50,
-  y: 750,
-  width: 495,
-  defaultFont: font,
-  defaultFontSize: 10,
-});
-
-const bytes = doc.save();
+try table.render(page, .{ .x = 50, .y = 700 });
 ```
 
 ### Images
 
-```typescript
-import { PDFDocument } from 'zpdf';
-import { readFileSync } from 'node:fs';
+```zig
+const zpdf = @import("zpdf");
 
-const doc = PDFDocument.create();
-const page = doc.addPage({ size: 'A4' });
+// Embed from file bytes
+const jpeg_data = try std.fs.cwd().readFileAlloc(allocator, "photo.jpg", 10 * 1024 * 1024);
+defer allocator.free(jpeg_data);
 
-// Embed a JPEG image
-const jpegData = readFileSync('photo.jpg');
-const jpegImage = doc.embedJpeg(jpegData);
-
-page.drawImage(jpegImage, {
-  x: 50,
-  y: 500,
-  width: 300,
-  height: 200,
+const image = try doc.addImage(.{
+    .data = jpeg_data,
+    .format = .jpeg,
 });
 
-// Embed a PNG image (with alpha transparency support)
-const pngData = readFileSync('logo.png');
-const pngImage = await doc.embedPng(pngData);
-
-page.drawImage(pngImage, {
-  x: 400,
-  y: 700,
-  width: 150,
-  height: 150,
+try page.drawImage(image, .{
+    .x = 50,
+    .y = 500,
+    .width = 200,
+    .height = 150,
 });
-
-const bytes = doc.save();
 ```
 
 ### Forms
 
-```typescript
-import { PDFDocument, rgb } from 'zpdf';
+```zig
+const zpdf = @import("zpdf");
 
-const doc = PDFDocument.create();
-const font = doc.getStandardFont('Helvetica');
-const page = doc.addPage({ size: 'A4' });
+var form = try doc.createForm();
 
-// Text input
-page.addTextField({
-  name: 'fullName',
-  x: 150,
-  y: 700,
-  width: 250,
-  height: 24,
-  font,
-  fontSize: 12,
-  label: 'Full Name',
+try form.addTextField(.{
+    .name = "full_name",
+    .page = page,
+    .rect = .{ .x = 100, .y = 700, .width = 200, .height = 24 },
+    .default_value = "",
+    .font_size = 12,
 });
 
-// Checkbox
-page.addCheckbox({
-  name: 'agree',
-  x: 150,
-  y: 660,
-  width: 16,
-  height: 16,
-  checked: false,
+try form.addCheckbox(.{
+    .name = "agree_terms",
+    .page = page,
+    .rect = .{ .x = 100, .y = 660, .width = 16, .height = 16 },
+    .checked = false,
 });
 
-// Dropdown
-page.addDropdown({
-  name: 'country',
-  x: 150,
-  y: 620,
-  width: 250,
-  height: 24,
-  options: ['United States', 'Canada', 'United Kingdom', 'Germany', 'France'],
-  selected: 'United States',
-  font,
-  fontSize: 12,
+try form.addDropdown(.{
+    .name = "country",
+    .page = page,
+    .rect = .{ .x = 100, .y = 620, .width = 200, .height = 24 },
+    .options = &.{ "United States", "Canada", "United Kingdom", "Germany", "Japan" },
+    .selected = 0,
 });
-
-// Radio buttons
-page.addRadioGroup({
-  name: 'plan',
-  options: [
-    { x: 150, y: 570, width: 16, height: 16, value: 'basic' },
-    { x: 150, y: 545, width: 16, height: 16, value: 'pro' },
-    { x: 150, y: 520, width: 16, height: 16, value: 'enterprise' },
-  ],
-  selected: 'basic',
-});
-
-const bytes = doc.save();
 ```
 
 ### Barcodes
 
-```typescript
-import { PDFDocument, drawBarcode } from 'zpdf';
-
-const doc = PDFDocument.create();
-const page = doc.addPage({ size: 'A4' });
+```zig
+const zpdf = @import("zpdf");
 
 // Code 128
-drawBarcode(page, {
-  type: 'code128',
-  value: 'ZPDF-2024',
-  x: 50,
-  y: 700,
-  width: 200,
-  height: 60,
-});
-
-// EAN-13
-drawBarcode(page, {
-  type: 'ean13',
-  value: '5901234123457',
-  x: 50,
-  y: 600,
-  width: 200,
-  height: 60,
+try page.drawBarcode(.{
+    .type = .code128,
+    .data = "ZPDF-2026",
+    .x = 50,
+    .y = 700,
+    .width = 200,
+    .height = 60,
+    .show_text = true,
 });
 
 // QR Code
-drawBarcode(page, {
-  type: 'qr',
-  value: 'https://github.com/meszmate/zpdf',
-  x: 50,
-  y: 450,
-  width: 120,
-  height: 120,
+try page.drawBarcode(.{
+    .type = .qr,
+    .data = "https://github.com/meszmate/zpdf",
+    .x = 50,
+    .y = 600,
+    .width = 100,
+    .height = 100,
 });
 
-// Code 39
-drawBarcode(page, {
-  type: 'code39',
-  value: 'HELLO',
-  x: 50,
-  y: 350,
-  width: 250,
-  height: 60,
+// EAN-13
+try page.drawBarcode(.{
+    .type = .ean13,
+    .data = "5901234123457",
+    .x = 50,
+    .y = 500,
+    .width = 180,
+    .height = 70,
+    .show_text = true,
 });
-
-const bytes = doc.save();
 ```
 
 ### Encryption
 
-```typescript
-import { PDFDocument } from 'zpdf';
+```zig
+const zpdf = @import("zpdf");
 
-const doc = PDFDocument.create({ title: 'Confidential Report' });
-const font = doc.getStandardFont('Helvetica');
-const page = doc.addPage();
-
-page.drawText('This document is encrypted with AES-256.', {
-  x: 50,
-  y: 750,
-  font,
-  fontSize: 14,
+doc.setEncryption(.{
+    .method = .aes256,
+    .user_password = "read-only",
+    .owner_password = "full-access",
+    .permissions = .{
+        .print = true,
+        .copy = false,
+        .modify = false,
+        .annotate = true,
+        .fill_forms = true,
+        .extract = false,
+        .assemble = false,
+    },
 });
-
-doc.encrypt({
-  ownerPassword: 'owner-secret',
-  userPassword: 'user-pass',
-  algorithm: 'aes-256',
-  permissions: {
-    printing: true,
-    copying: false,
-    modifying: false,
-    annotating: false,
-    fillingForms: true,
-    contentAccessibility: true,
-    documentAssembly: false,
-    printingHighQuality: true,
-  },
-});
-
-const bytes = doc.save();
 ```
 
 ### Merging PDFs
 
-```typescript
-import { PDFMerger } from 'zpdf';
-import { readFileSync, writeFileSync } from 'node:fs';
+```zig
+const zpdf = @import("zpdf");
 
-const merger = new PDFMerger();
+const pdf1_bytes = try std.fs.cwd().readFileAlloc(allocator, "doc1.pdf", 50 * 1024 * 1024);
+defer allocator.free(pdf1_bytes);
+const pdf2_bytes = try std.fs.cwd().readFileAlloc(allocator, "doc2.pdf", 50 * 1024 * 1024);
+defer allocator.free(pdf2_bytes);
 
-// Add entire documents
-merger.add(readFileSync('document1.pdf'));
-merger.add(readFileSync('document2.pdf'));
+var doc1 = try zpdf.Parser.parse(allocator, pdf1_bytes);
+defer doc1.deinit();
+var doc2 = try zpdf.Parser.parse(allocator, pdf2_bytes);
+defer doc2.deinit();
 
-// Add specific pages (0-based indices)
-merger.add(readFileSync('document3.pdf'), [0, 2, 4]);
+var merged = try zpdf.merge(allocator, &.{ doc1, doc2 });
+defer merged.deinit();
 
-const merged = await merger.merge();
-writeFileSync('merged.pdf', merged);
+const output = try merged.save(allocator);
+defer allocator.free(output);
 ```
 
 ### Splitting PDFs
 
-```typescript
-import { PDFSplitter } from 'zpdf';
-import { readFileSync, writeFileSync } from 'node:fs';
+```zig
+const zpdf = @import("zpdf");
 
-const pdfBytes = readFileSync('large-document.pdf');
+var doc = try zpdf.Parser.parse(allocator, pdf_bytes);
+defer doc.deinit();
 
-// Split into individual pages
-const pages = await PDFSplitter.splitByPage(pdfBytes);
-pages.forEach((page, i) => writeFileSync(`page-${i + 1}.pdf`, page));
+// Extract pages 1-3
+var subset = try doc.extractPages(allocator, .{ .start = 0, .end = 3 });
+defer subset.deinit();
 
-// Split by ranges (0-based, inclusive)
-const parts = await PDFSplitter.splitByRanges(pdfBytes, [
-  [0, 4],   // Pages 1-5
-  [5, 9],   // Pages 6-10
-  [10, 14], // Pages 11-15
-]);
-parts.forEach((part, i) => writeFileSync(`part-${i + 1}.pdf`, part));
+const output = try subset.save(allocator);
+defer allocator.free(output);
 ```
 
 ### Parsing PDFs
 
-```typescript
-import { parsePdf } from 'zpdf';
-import { readFileSync } from 'node:fs';
+```zig
+const zpdf = @import("zpdf");
 
-const pdfBytes = readFileSync('existing.pdf');
-const doc = await parsePdf(pdfBytes);
+const pdf_bytes = try std.fs.cwd().readFileAlloc(allocator, "input.pdf", 50 * 1024 * 1024);
+defer allocator.free(pdf_bytes);
 
-// Document metadata
-console.log('Title:', doc.info?.title);
-console.log('Author:', doc.info?.author);
-console.log('Pages:', doc.pages.length);
+var doc = try zpdf.Parser.parse(allocator, pdf_bytes);
+defer doc.deinit();
+
+// Read metadata
+if (doc.getTitle()) |title| {
+    std.debug.print("Title: {s}\n", .{title});
+}
+std.debug.print("Pages: {d}\n", .{doc.getPageCount()});
 
 // Extract text from each page
-for (const page of doc.pages) {
-  const textItems = page.extractText();
-  for (const item of textItems) {
-    console.log(`[${item.fontName} ${item.fontSize}pt] (${item.x}, ${item.y}): ${item.text}`);
-  }
-}
-
-// Extract images
-for (const page of doc.pages) {
-  const images = page.extractImages();
-  for (const img of images) {
-    console.log(`Image: ${img.width}x${img.height}, ${img.colorSpace}, ${img.data.length} bytes`);
-  }
-}
-
-// Read form fields
-if (doc.formFields) {
-  for (const field of doc.formFields) {
-    console.log(`Field "${field.name}": ${field.value} (${field.type})`);
-  }
+for (0..doc.getPageCount()) |i| {
+    const text = try doc.getPageText(allocator, i);
+    defer allocator.free(text);
+    std.debug.print("Page {d}: {s}\n", .{ i + 1, text });
 }
 ```
 
 ### Watermarks
 
-```typescript
-import { addWatermark } from 'zpdf';
-import { readFileSync, writeFileSync } from 'node:fs';
+```zig
+const zpdf = @import("zpdf");
 
-const pdfBytes = readFileSync('document.pdf');
+var doc = try zpdf.Parser.parse(allocator, pdf_bytes);
+defer doc.deinit();
 
-const watermarked = await addWatermark(pdfBytes, {
-  text: 'CONFIDENTIAL',
-  fontSize: 60,
-  color: { type: 'rgb', r: 1, g: 0, b: 0 },
-  opacity: 0.15,
-  rotation: -45,
+try zpdf.watermark(doc, .{
+    .text = "CONFIDENTIAL",
+    .font_size = 60,
+    .color = zpdf.rgba(255, 0, 0, 0.15),
+    .rotation = 45,
+    .position = .center,
 });
-
-writeFileSync('watermarked.pdf', watermarked);
 ```
 
 ### Bookmarks
 
-```typescript
-import { PDFDocument } from 'zpdf';
+```zig
+const zpdf = @import("zpdf");
 
-const doc = PDFDocument.create();
-const font = doc.getStandardFont('Helvetica-Bold');
+var outline = try doc.createOutline();
+const chapter1 = try outline.addItem("Chapter 1: Introduction", .{ .page = 0, .y = 750 });
+try chapter1.addChild("1.1 Overview", .{ .page = 0, .y = 500 });
+try chapter1.addChild("1.2 Getting Started", .{ .page = 1, .y = 750 });
 
-const chapter1 = doc.addPage();
-chapter1.drawText('Chapter 1: Introduction', { x: 50, y: 750, font, fontSize: 24 });
-
-const chapter2 = doc.addPage();
-chapter2.drawText('Chapter 2: Getting Started', { x: 50, y: 750, font, fontSize: 24 });
-
-const chapter3 = doc.addPage();
-chapter3.drawText('Chapter 3: Advanced Topics', { x: 50, y: 750, font, fontSize: 24 });
-
-doc.addBookmark({ title: 'Chapter 1: Introduction', pageIndex: 0 });
-doc.addBookmark({ title: 'Chapter 2: Getting Started', pageIndex: 1 });
-const ch3 = doc.addBookmark({ title: 'Chapter 3: Advanced Topics', pageIndex: 2 });
-doc.addBookmark({ title: '3.1 Performance', pageIndex: 2, parent: ch3 });
-doc.addBookmark({ title: '3.2 Security', pageIndex: 2, parent: ch3 });
-
-const bytes = doc.save();
+const chapter2 = try outline.addItem("Chapter 2: Advanced Topics", .{ .page = 2, .y = 750 });
+try chapter2.addChild("2.1 Performance", .{ .page = 2, .y = 500 });
 ```
 
 ### Annotations
 
-```typescript
-import { PDFDocument, rgb } from 'zpdf';
-
-const doc = PDFDocument.create();
-const font = doc.getStandardFont('Helvetica');
-const page = doc.addPage();
-
-page.drawText('Hover over the icon to see a note.', { x: 50, y: 750, font, fontSize: 12 });
-
-// Sticky note annotation
-page.addAnnotation({
-  type: 'text',
-  rect: { x: 50, y: 700, width: 24, height: 24 },
-  contents: 'This is a sticky note comment.',
-  color: rgb(255, 255, 0),
-});
+```zig
+const zpdf = @import("zpdf");
 
 // Link annotation
-page.addAnnotation({
-  type: 'link',
-  rect: { x: 50, y: 660, width: 200, height: 16 },
-  uri: 'https://github.com/meszmate/zpdf',
+try page.addAnnotation(.{
+    .type = .link,
+    .rect = .{ .x = 50, .y = 700, .width = 200, .height = 20 },
+    .uri = "https://github.com/meszmate/zpdf",
 });
 
-// Highlight annotation
-page.addAnnotation({
-  type: 'highlight',
-  rect: { x: 50, y: 740, width: 300, height: 16 },
-  color: rgb(255, 255, 0),
+// Text note
+try page.addAnnotation(.{
+    .type = .text_note,
+    .rect = .{ .x = 50, .y = 650, .width = 24, .height = 24 },
+    .contents = "This section needs review.",
+    .color = zpdf.rgb(255, 255, 0),
 });
 
-const bytes = doc.save();
+// Highlight
+try page.addAnnotation(.{
+    .type = .highlight,
+    .rect = .{ .x = 50, .y = 600, .width = 300, .height = 16 },
+    .color = zpdf.rgba(255, 255, 0, 0.5),
+});
 ```
 
 ### Custom Paths
 
-```typescript
-import { PDFDocument, PathBuilder, rgb } from 'zpdf';
+```zig
+const zpdf = @import("zpdf");
 
-const doc = PDFDocument.create();
-const page = doc.addPage();
+var path = zpdf.PathBuilder.init();
+path.moveTo(100, 700);
+path.lineTo(200, 750);
+path.curveTo(250, 800, 300, 750, 350, 700);
+path.lineTo(350, 600);
+path.closePath();
 
-// Draw a star using PathBuilder
-const star = new PathBuilder();
-const cx = 300, cy = 500, outerR = 80, innerR = 35;
-
-for (let i = 0; i < 5; i++) {
-  const outerAngle = (Math.PI / 2) + (i * 2 * Math.PI / 5);
-  const innerAngle = outerAngle + Math.PI / 5;
-
-  const ox = cx + outerR * Math.cos(outerAngle);
-  const oy = cy + outerR * Math.sin(outerAngle);
-  const ix = cx + innerR * Math.cos(innerAngle);
-  const iy = cy + innerR * Math.sin(innerAngle);
-
-  if (i === 0) {
-    star.moveTo(ox, oy);
-  } else {
-    star.lineTo(ox, oy);
-  }
-  star.lineTo(ix, iy);
-}
-star.close();
-
-page.drawPath(star, {
-  color: rgb(241, 196, 15),
-  borderColor: rgb(243, 156, 18),
-  borderWidth: 2,
+try page.drawPath(path, .{
+    .fill_color = zpdf.rgb(200, 220, 255),
+    .stroke_color = zpdf.rgb(0, 0, 100),
+    .line_width = 2,
 });
-
-const bytes = doc.save();
 ```
 
-### Layers (Optional Content)
+### Layers (Optional Content Groups)
 
-```typescript
-import { PDFDocument, LayerBuilder, rgb } from 'zpdf';
+```zig
+const zpdf = @import("zpdf");
 
-const doc = PDFDocument.create();
-const font = doc.getStandardFont('Helvetica');
-const page = doc.addPage();
+const draft_layer = try doc.addLayer("Draft Marks", .{ .visible = true });
+const print_layer = try doc.addLayer("Print Only", .{ .visible = false, .print = true });
 
-const layers = new LayerBuilder(doc);
+try page.beginLayer(draft_layer);
+try page.drawText("DRAFT", .{
+    .x = 250,
+    .y = 400,
+    .font_size = 72,
+    .color = zpdf.rgba(255, 0, 0, 0.3),
+});
+try page.endLayer();
 
-const englishLayer = layers.addLayer('English');
-const spanishLayer = layers.addLayer('Spanish');
-
-page.beginLayer(englishLayer);
-page.drawText('Hello, World!', { x: 50, y: 700, font, fontSize: 20, color: rgb(0, 0, 0) });
-page.endLayer();
-
-page.beginLayer(spanishLayer);
-page.drawText('Hola, Mundo!', { x: 50, y: 700, font, fontSize: 20, color: rgb(0, 0, 0) });
-page.endLayer();
-
-const bytes = doc.save();
+try page.beginLayer(print_layer);
+try page.drawText("Printed on: 2026-01-01", .{
+    .x = 50,
+    .y = 30,
+    .font_size = 8,
+    .color = zpdf.gray(0.5),
+});
+try page.endLayer();
 ```
 
 ### Tagged PDF (Accessibility)
 
-```typescript
-import { PDFDocument, StructureTree, StructureTags } from 'zpdf';
+```zig
+const zpdf = @import("zpdf");
 
-const doc = PDFDocument.create();
-const font = doc.getStandardFont('Helvetica');
-const boldFont = doc.getStandardFont('Helvetica-Bold');
-const page = doc.addPage();
+doc.setTagged(true);
+doc.setLanguage("en-US");
 
-const structTree = new StructureTree(doc);
+var page = try doc.addPage(.a4);
 
-structTree.beginElement(StructureTags.Document);
-
-structTree.beginElement(StructureTags.H1);
-page.drawText('Accessible Document', { x: 50, y: 750, font: boldFont, fontSize: 24 });
-structTree.endElement();
-
-structTree.beginElement(StructureTags.P);
-page.drawText('This document is tagged for screen readers and assistive technology.', {
-  x: 50,
-  y: 710,
-  font,
-  fontSize: 12,
-  maxWidth: 500,
+try page.beginTag(.h1);
+try page.drawText("Document Title", .{
+    .x = 50,
+    .y = 750,
+    .font = .helvetica_bold,
+    .font_size = 24,
 });
-structTree.endElement();
+try page.endTag();
 
-structTree.endElement(); // Document
+try page.beginTag(.p);
+try page.drawText("This is an accessible paragraph of text.", .{
+    .x = 50,
+    .y = 710,
+    .font = .helvetica,
+    .font_size = 12,
+});
+try page.endTag();
 
-const bytes = doc.save();
+try page.addImageTag(image, .{
+    .alt_text = "A chart showing quarterly revenue growth",
+});
 ```
 
 ---
 
 ## API Reference
 
-### PDFDocument
-
-The main entry point for creating PDF documents.
+### Document
 
 | Method | Description |
 |--------|-------------|
-| `PDFDocument.create(options?)` | Create a new empty document |
-| `addPage(options?)` | Add a new page |
-| `getPage(index)` | Get a page by index |
-| `getPageCount()` | Return the number of pages |
-| `removePage(index)` | Remove a page by index |
-| `insertPage(index, options?)` | Insert a page at a specific position |
-| `setTitle(title)` | Set document title |
-| `setAuthor(author)` | Set document author |
-| `setSubject(subject)` | Set document subject |
-| `setKeywords(keywords)` | Set document keywords |
-| `getStandardFont(name)` | Get one of the 14 standard fonts |
-| `registerFont(data)` | Register a TrueType font |
-| `embedJpeg(data)` | Embed a JPEG image |
-| `embedPng(data)` | Embed a PNG image |
-| `encrypt(options)` | Encrypt the document |
-| `addBookmark(options)` | Add a bookmark entry |
-| `save(options?)` | Serialize to `Uint8Array` |
+| `Document.init(allocator)` | Create a new empty PDF document |
+| `doc.deinit()` | Free all resources |
+| `doc.addPage(size)` | Add a new page with the given size |
+| `doc.setTitle(title)` | Set the document title |
+| `doc.setAuthor(author)` | Set the document author |
+| `doc.setSubject(subject)` | Set the document subject |
+| `doc.setKeywords(keywords)` | Set the document keywords |
+| `doc.setCreator(creator)` | Set the creator application name |
+| `doc.setEncryption(options)` | Enable encryption with given options |
+| `doc.addImage(options)` | Add an image resource to the document |
+| `doc.addLayer(name, options)` | Add an optional content group |
+| `doc.createForm()` | Create an interactive form |
+| `doc.createOutline()` | Create a document outline (bookmarks) |
+| `doc.setTagged(enabled)` | Enable tagged PDF structure |
+| `doc.setLanguage(lang)` | Set the document language |
+| `doc.save(allocator)` | Serialize the document to PDF bytes |
+| `doc.getPageCount()` | Return the number of pages |
+| `doc.extractPages(allocator, range)` | Extract a subset of pages |
 
-### PDFPage
-
-Represents a single page with drawing methods.
+### Page
 
 | Method | Description |
 |--------|-------------|
-| `drawText(text, options)` | Draw text with font, size, color, alignment |
-| `drawRichText(runs, options)` | Draw text with mixed formatting |
-| `drawRect(options)` | Draw a rectangle |
-| `drawCircle(options)` | Draw a circle |
-| `drawEllipse(options)` | Draw an ellipse |
-| `drawLine(options)` | Draw a line |
-| `drawPolygon(options)` | Draw a polygon |
-| `drawPath(path, options)` | Draw a custom path |
-| `drawImage(image, options)` | Draw an embedded image |
-| `drawTable(table, options)` | Render a table |
-| `drawWatermark(options)` | Draw a watermark on the page |
-| `addTextField(options)` | Add a text input form field |
-| `addCheckbox(options)` | Add a checkbox form field |
-| `addRadioGroup(options)` | Add a radio button group |
-| `addDropdown(options)` | Add a dropdown select |
-| `addListbox(options)` | Add a listbox |
-| `addButton(options)` | Add a push button |
-| `addSignatureField(options)` | Add a signature field |
-| `addAnnotation(annotation)` | Add an annotation |
-| `beginLayer(layer)` | Begin an optional content layer |
-| `endLayer()` | End the current layer |
-| `getWidth()` / `getHeight()` | Get page dimensions |
-| `setRotation(angle)` | Set page rotation |
+| `page.drawText(text, options)` | Draw text at a position |
+| `page.drawRect(options)` | Draw a rectangle |
+| `page.drawCircle(options)` | Draw a circle |
+| `page.drawEllipse(options)` | Draw an ellipse |
+| `page.drawLine(options)` | Draw a line |
+| `page.drawPolygon(points, options)` | Draw a polygon |
+| `page.drawImage(image, options)` | Draw an image |
+| `page.drawPath(path, options)` | Draw a custom path |
+| `page.drawBarcode(options)` | Draw a barcode |
+| `page.addAnnotation(options)` | Add an annotation |
+| `page.beginLayer(layer)` | Begin optional content group |
+| `page.endLayer()` | End optional content group |
+| `page.beginTag(tag)` | Begin a structure tag |
+| `page.endTag()` | End a structure tag |
+| `page.addImageTag(image, options)` | Add an accessible image tag |
+| `page.saveState()` | Save the graphics state |
+| `page.restoreState()` | Restore the graphics state |
+| `page.translate(tx, ty)` | Apply translation transform |
+| `page.rotate(angle)` | Apply rotation transform |
+| `page.scale(sx, sy)` | Apply scale transform |
 
 ### Table
 
-Build table data for rendering on a page.
-
 | Method | Description |
 |--------|-------------|
-| `new Table(style?)` | Create a table with optional style |
-| `setColumnWidths(widths)` | Set column widths (number, `'auto'`, or percentage string) |
-| `addHeaderRow(cells)` | Add a header row |
-| `addRow(cells)` | Add a data row |
-
-### PDFMerger
-
-Merge multiple PDF files.
-
-| Method | Description |
-|--------|-------------|
-| `add(pdfBytes, pages?)` | Add a PDF to the merge queue |
-| `merge()` | Merge all queued PDFs and return `Uint8Array` |
-
-### PDFSplitter
-
-Split a PDF into smaller documents.
-
-| Method | Description |
-|--------|-------------|
-| `PDFSplitter.splitByPage(pdfBytes)` | Split into one PDF per page |
-| `PDFSplitter.splitByRanges(pdfBytes, ranges)` | Split by page ranges |
+| `Table.init(allocator, options)` | Create a table with column definitions |
+| `table.deinit()` | Free table resources |
+| `table.addHeader(cells)` | Add a header row |
+| `table.addRow(cells)` | Add a data row |
+| `table.render(page, position)` | Render the table onto a page |
 
 ### PathBuilder
 
-Construct custom vector paths.
+| Method | Description |
+|--------|-------------|
+| `PathBuilder.init()` | Create a new path |
+| `path.moveTo(x, y)` | Move to a point |
+| `path.lineTo(x, y)` | Draw a line to a point |
+| `path.curveTo(...)` | Draw a cubic Bezier curve |
+| `path.closePath()` | Close the current subpath |
+
+### Parser
 
 | Method | Description |
 |--------|-------------|
-| `moveTo(x, y)` | Move the pen |
-| `lineTo(x, y)` | Draw a straight line |
-| `curveTo(x1, y1, x2, y2, x3, y3)` | Cubic bezier curve |
-| `quadraticCurveTo(x1, y1, x2, y2)` | Quadratic bezier curve |
-| `arc(cx, cy, r, ...)` | Circular arc |
-| `close()` | Close the path |
+| `Parser.parse(allocator, bytes)` | Parse PDF bytes into a Document |
+| `doc.getTitle()` | Get the document title (if set) |
+| `doc.getPageText(allocator, index)` | Extract text from a page |
 
-### parsePdf
+---
 
-Parse an existing PDF document.
+## Color Utilities
 
-```typescript
-const doc = await parsePdf(pdfBytes: Uint8Array, password?: string): Promise<ParsedDocument>;
+```zig
+// RGB (0-255)
+const red = zpdf.rgb(255, 0, 0);
+const custom = zpdf.rgb(0, 51, 153);
+
+// RGBA with opacity (0.0-1.0)
+const semi = zpdf.rgba(255, 0, 0, 0.5);
+
+// CMYK (0.0-1.0)
+const cyan = zpdf.cmyk(1.0, 0, 0, 0);
+
+// Grayscale (0.0 = black, 1.0 = white)
+const mid_gray = zpdf.gray(0.5);
 ```
-
-Returns a `ParsedDocument` with:
-- `info` - Document metadata (title, author, subject, etc.)
-- `pages` - Array of `ParsedPage` with `extractText()` and `extractImages()`
-- `outline` - Bookmark tree
-- `formFields` - Array of `FormFieldInfo`
-
-### Color Utilities
-
-```typescript
-import { rgb, cmyk, grayscale, hexColor } from 'zpdf';
-
-rgb(255, 0, 0);           // Red (values 0-255)
-cmyk(0, 100, 100, 0);     // Red in CMYK (values 0-100)
-grayscale(128);            // 50% gray (values 0-255)
-hexColor('#ff6600');       // From hex string
-```
-
-Color conversion functions: `rgbToCmyk`, `cmykToRgb`, `rgbToGrayscale`, `grayscaleToRgb`.
 
 ---
 
 ## Page Sizes
 
-All sizes are in PDF points (1 point = 1/72 inch).
+| Constant | Dimensions (points) | Millimeters |
+|----------|---------------------|-------------|
+| `.a3` | 842 x 1191 | 297 x 420 |
+| `.a4` | 595 x 842 | 210 x 297 |
+| `.a5` | 420 x 595 | 148 x 210 |
+| `.a6` | 298 x 420 | 105 x 148 |
+| `.letter` | 612 x 792 | 216 x 279 |
+| `.legal` | 612 x 1008 | 216 x 356 |
+| `.tabloid` | 792 x 1224 | 279 x 432 |
+| `.executive` | 522 x 756 | 184 x 267 |
+| `.b4` | 709 x 1001 | 250 x 353 |
+| `.b5` | 499 x 709 | 176 x 250 |
 
-| Name | Width x Height (pt) | Dimensions |
-|------|---------------------|------------|
-| `A0` | 2384 x 3370 | 841 x 1189 mm |
-| `A1` | 1684 x 2384 | 594 x 841 mm |
-| `A2` | 1191 x 1684 | 420 x 594 mm |
-| `A3` | 842 x 1191 | 297 x 420 mm |
-| `A4` | 595 x 842 | 210 x 297 mm |
-| `A5` | 420 x 595 | 148 x 210 mm |
-| `A6` | 298 x 420 | 105 x 148 mm |
-| `A7` | 210 x 298 | 74 x 105 mm |
-| `A8` | 148 x 210 | 52 x 74 mm |
-| `B0` | 2835 x 4008 | 1000 x 1414 mm |
-| `B1` | 2004 x 2835 | 707 x 1000 mm |
-| `B2` | 1417 x 2004 | 500 x 707 mm |
-| `B3` | 1001 x 1417 | 353 x 500 mm |
-| `B4` | 709 x 1001 | 250 x 353 mm |
-| `B5` | 499 x 709 | 176 x 250 mm |
-| `Letter` | 612 x 792 | 8.5 x 11 in |
-| `Legal` | 612 x 1008 | 8.5 x 14 in |
-| `Tabloid` | 792 x 1224 | 11 x 17 in |
-| `Ledger` | 1224 x 792 | 17 x 11 in |
-| `Executive` | 522 x 756 | 7.25 x 10.5 in |
-| `Folio` | 612 x 936 | 8.5 x 13 in |
-| `Quarto` | 610 x 780 | 8.5 x 10.83 in |
-| `10x14` | 720 x 1008 | 10 x 14 in |
-| `11x17` | 792 x 1224 | 11 x 17 in |
+Custom sizes:
 
-You can also use custom sizes by passing a `[width, height]` tuple.
+```zig
+var page = try doc.addPage(.{ .custom = .{ .width = 400, .height = 600 } });
+```
 
 ---
 
 ## Standard Fonts
 
-The 14 standard PDF fonts are available without embedding any font data:
-
-| Font Family | Regular | Bold | Italic/Oblique | Bold Italic/Oblique |
-|-------------|---------|------|----------------|---------------------|
-| Helvetica | `Helvetica` | `Helvetica-Bold` | `Helvetica-Oblique` | `Helvetica-BoldOblique` |
-| Times | `Times-Roman` | `Times-Bold` | `Times-Italic` | `Times-BoldItalic` |
-| Courier | `Courier` | `Courier-Bold` | `Courier-Oblique` | `Courier-BoldOblique` |
-| Symbol | `Symbol` | | | |
-| Zapf Dingbats | `ZapfDingbats` | | | |
+| Enum | Font Name |
+|------|-----------|
+| `.helvetica` | Helvetica |
+| `.helvetica_bold` | Helvetica-Bold |
+| `.helvetica_italic` | Helvetica-Oblique |
+| `.helvetica_bold_italic` | Helvetica-BoldOblique |
+| `.times` | Times-Roman |
+| `.times_bold` | Times-Bold |
+| `.times_italic` | Times-Italic |
+| `.times_bold_italic` | Times-BoldItalic |
+| `.courier` | Courier |
+| `.courier_bold` | Courier-Bold |
+| `.courier_italic` | Courier-Oblique |
+| `.courier_bold_italic` | Courier-BoldOblique |
+| `.symbol` | Symbol |
+| `.zapf_dingbats` | ZapfDingbats |
 
 ---
 
-## Browser Support
+## Platform Support
 
-zpdf is a pure TypeScript library with zero runtime dependencies. It works in any environment that supports `Uint8Array` and standard ES2020+ features:
+zpdf is a pure Zig library with no platform-specific code. It works on any target supported by the Zig standard library:
 
-- **Node.js** 16+
-- **Deno**
-- **Bun**
-- **Modern browsers** (Chrome, Firefox, Safari, Edge)
-
-The library deliberately avoids Node.js-specific APIs like `Buffer`. All binary data uses `Uint8Array` for maximum portability.
-
-```typescript
-// Browser example
-import { PDFDocument } from 'zpdf';
-
-const doc = PDFDocument.create();
-const font = doc.getStandardFont('Helvetica');
-const page = doc.addPage();
-page.drawText('Created in the browser!', { x: 50, y: 750, font, fontSize: 16 });
-
-const bytes = doc.save();
-const blob = new Blob([bytes], { type: 'application/pdf' });
-const url = URL.createObjectURL(blob);
-window.open(url);
-```
+- **Zig version**: 0.15.0+
+- **Targets**: Linux, macOS, Windows, FreeBSD, WebAssembly, and any other target with `std` library support
+- **Architecture**: x86_64, aarch64, wasm32, and others
 
 ---
 
@@ -896,20 +681,39 @@ window.open(url);
 
 zpdf is designed for efficiency:
 
-- **Streaming serialization** - PDF objects are written sequentially without building the entire document in memory
-- **Font subsetting** - Only glyphs actually used in the document are embedded, keeping file sizes small
-- **Deflate compression** - Content streams are compressed using a built-in deflate implementation
-- **Lazy parsing** - The PDF parser reads only the structures needed, avoiding full document materialization
-- **No dependencies** - Zero runtime dependencies means no overhead from transitive packages
+- **Zero allocations** in hot paths where possible
+- **Streaming output** to minimize peak memory usage
+- **Deflate compression** for reduced file sizes
+- **Lazy parsing** -- only parse objects when accessed
+- **No garbage collection** -- deterministic memory management via allocators
+- **Comptime-known layouts** -- leverages Zig's comptime for zero-overhead abstractions
+
+---
+
+## Building & Testing
+
+```bash
+# Build the library
+zig build
+
+# Run all tests
+zig build test
+
+# Run a specific example
+zig build run-create_basic
+
+# Build in release mode
+zig build -Doptimize=ReleaseFast
+```
 
 ---
 
 ## Contributing
 
-Contributions are welcome! Please read the [Contributing Guide](CONTRIBUTING.md) before submitting a pull request.
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ---
 
 ## License
 
-[MIT](LICENSE) - Copyright (c) 2026 meszmate
+MIT License. See [LICENSE](LICENSE) for details.

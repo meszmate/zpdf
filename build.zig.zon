@@ -1,0 +1,14 @@
+.{
+    .name = .zpdf,
+    .version = "1.0.0",
+    .fingerprint = 0xd4779d7a33ec317a,
+    .minimum_zig_version = "0.15.0",
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "README.md",
+        "LICENSE",
+    },
+    .dependencies = .{},
+}
