@@ -183,8 +183,11 @@ pub const modify = struct {
     pub const merger = @import("modify/merger.zig");
     pub const splitter = @import("modify/splitter.zig");
     pub const watermarker = @import("modify/watermarker.zig");
+    pub const incremental = @import("modify/incremental.zig");
 };
 pub const PdfMerger = modify.merger.PdfMerger;
+pub const IncrementalUpdate = modify.incremental.IncrementalUpdate;
+pub const MetadataUpdate = modify.incremental.MetadataUpdate;
 
 // ── Layers (Optional Content) ───────────────────────────────────────
 pub const layers = @import("layers/layer_builder.zig");
