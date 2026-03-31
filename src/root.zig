@@ -85,6 +85,7 @@ pub const graphics = struct {
 pub const GfxPathBuilder = graphics.path_builder.PathBuilder;
 pub const Matrix = @import("utils/math.zig").Matrix;
 pub const GraphicsState = graphics.state.GraphicsState;
+pub const ClipMode = graphics.state.ClipMode;
 
 // ── Text ─────────────────────────────────────────────────────────────
 pub const text = struct {
