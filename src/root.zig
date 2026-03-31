@@ -81,10 +81,15 @@ pub const graphics = struct {
     pub const path_builder = @import("graphics/path_builder.zig");
     pub const transform = @import("graphics/transform.zig");
     pub const state = @import("graphics/state.zig");
+    pub const gradient_mod = @import("graphics/gradient.zig");
 };
 pub const GfxPathBuilder = graphics.path_builder.PathBuilder;
 pub const Matrix = @import("utils/math.zig").Matrix;
 pub const GraphicsState = graphics.state.GraphicsState;
+pub const gradient = graphics.gradient_mod;
+pub const LinearGradient = gradient.LinearGradient;
+pub const RadialGradient = gradient.RadialGradient;
+pub const ColorStop = gradient.ColorStop;
 pub const ClipMode = graphics.state.ClipMode;
 
 // ── Text ─────────────────────────────────────────────────────────────

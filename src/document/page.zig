@@ -33,21 +33,31 @@ pub const ImageResource = struct {
     name: []const u8,
 };
 
-/// Page-level resources (fonts, images, etc.).
+/// A pattern resource registered on a page.
+pub const PatternResource = struct {
+    ref: Ref,
+    name: []const u8,
+};
+
+/// Page-level resources (fonts, images, patterns, etc.).
 pub const Resources = struct {
     fonts: StringHashMap(FontResource),
     images: ArrayList(ImageResource),
+    patterns: StringHashMap(PatternResource),
     allocator: Allocator,
     font_count: u32,
     image_count: u32,
+    pattern_count: u32,
 
     pub fn init(allocator: Allocator) Resources {
         return .{
             .fonts = .{},
             .images = .{},
+            .patterns = .{},
             .allocator = allocator,
             .font_count = 0,
             .image_count = 0,
+            .pattern_count = 0,
         };
     }
 
@@ -58,6 +68,11 @@ pub const Resources = struct {
         }
         self.fonts.deinit(self.allocator);
         self.images.deinit(self.allocator);
+        var pit = self.patterns.iterator();
+        while (pit.next()) |entry| {
+            self.allocator.free(entry.value_ptr.name);
+        }
+        self.patterns.deinit(self.allocator);
     }
 };
 
@@ -265,6 +280,24 @@ pub const Page = struct {
         const name = try std.fmt.allocPrint(self.allocator, "F{d}", .{self.resources.font_count});
         try self.resources.fonts.put(self.allocator, font_name, .{ .ref = ref, .name = name });
         return name;
+    }
+
+    /// Registers a pattern on this page and returns the resource name (e.g. "P1").
+    pub fn addPattern(self: *Page, pattern_name: []const u8, ref: Ref) ![]const u8 {
+        if (self.resources.patterns.get(pattern_name)) |existing| {
+            return existing.name;
+        }
+        self.resources.pattern_count += 1;
+        const name = try std.fmt.allocPrint(self.allocator, "P{d}", .{self.resources.pattern_count});
+        try self.resources.patterns.put(self.allocator, pattern_name, .{ .ref = ref, .name = name });
+        return name;
+    }
+
+    /// Sets the fill color to a pattern (gradient). Writes `/Pattern cs /name scn` to the content stream.
+    pub fn setGradientFill(self: *Page, pattern_name: []const u8) !void {
+        const writer = self.contentWriter();
+        try writer.writeAll("/Pattern cs\n");
+        try writer.print("/{s} scn\n", .{pattern_name});
     }
 
     fn contentWriter(self: *Page) ArrayList(u8).Writer {

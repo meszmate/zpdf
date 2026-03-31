@@ -24,6 +24,7 @@ pub fn build(b: *std.Build) void {
         "barcodes",
         "parse_pdf",
         "accessibility",
+        "create_gradients",
         "headers_footers",
         "clipping",
     };
@@ -69,6 +70,7 @@ pub fn build(b: *std.Build) void {
         "tests/security_tests.zig",
         "tests/barcode_tests.zig",
         "tests/utils_tests.zig",
+        "tests/gradient_tests.zig",
         "tests/clip_tests.zig",
         "tests/integration_tests.zig",
         "tests/header_footer_tests.zig",

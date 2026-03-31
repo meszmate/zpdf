@@ -109,12 +109,27 @@ pub const PdfWriter = struct {
                 }
             }
 
+            // Build pattern resource dict for this page
+            var pattern_dict = types.pdfDict(allocator);
+            {
+                var pat_iter = page.resources.patterns.iterator();
+                while (pat_iter.next()) |pentry| {
+                    const pat = pentry.value_ptr.*;
+                    try pattern_dict.dict_obj.put(allocator, pat.name, types.pdfRef(pat.ref.obj_num, pat.ref.gen_num));
+                }
+            }
+
             // Build resources dict
             var resources_dict = types.pdfDict(allocator);
             if (font_dict.dict_obj.count() > 0) {
                 try resources_dict.dict_obj.put(allocator,"Font", font_dict);
             } else {
                 font_dict.deinit(allocator);
+            }
+            if (pattern_dict.dict_obj.count() > 0) {
+                try resources_dict.dict_obj.put(allocator, "Pattern", pattern_dict);
+            } else {
+                pattern_dict.deinit(allocator);
             }
 
             // Build page dict (parent will be set after we know pages_ref)
