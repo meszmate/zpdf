@@ -91,9 +91,13 @@ pub const text = struct {
     pub const text_style = @import("text/text_style.zig");
     pub const text_layout = @import("text/text_layout.zig");
     pub const text_renderer = @import("text/text_renderer.zig");
+    pub const rich_text = @import("text/rich_text.zig");
 };
 pub const TextStyle = text.text_style.TextStyle;
 pub const Alignment = text.text_style.Alignment;
+pub const TextSpan = text.rich_text.TextSpan;
+pub const RichTextOptions = text.rich_text.RichTextOptions;
+pub const RichTextAlignment = text.rich_text.RichTextAlignment;
 
 // ── Image ────────────────────────────────────────────────────────────
 pub const image = struct {
