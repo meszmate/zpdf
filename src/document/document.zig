@@ -10,6 +10,7 @@ const Page = @import("page.zig").Page;
 const PageSize = @import("page_sizes.zig").PageSize;
 const StandardFont = @import("../font/standard_fonts.zig").StandardFont;
 const PdfWriter = @import("../writer/pdf_writer.zig").PdfWriter;
+const stream_writer = @import("../writer/stream_writer.zig");
 const HeaderFooter = @import("../layout/header_footer.zig").HeaderFooter;
 
 /// Handle to a font resource within the document.
@@ -221,6 +222,11 @@ pub const Document = struct {
     /// Serializes the entire document to PDF bytes.
     pub fn save(self: *Document, allocator: Allocator) ![]u8 {
         return PdfWriter.writePdf(allocator, self);
+    }
+
+    /// Stream the document directly to a writer without building the entire PDF in memory.
+    pub fn saveTo(self: *Document, allocator: Allocator, wr: anytype) !void {
+        return stream_writer.streamPdf(allocator, self, wr);
     }
 };
 
