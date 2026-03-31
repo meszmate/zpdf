@@ -10,6 +10,7 @@ const Page = @import("page.zig").Page;
 const PageSize = @import("page_sizes.zig").PageSize;
 const StandardFont = @import("../font/standard_fonts.zig").StandardFont;
 const PdfWriter = @import("../writer/pdf_writer.zig").PdfWriter;
+const HeaderFooter = @import("../layout/header_footer.zig").HeaderFooter;
 
 /// Handle to a font resource within the document.
 pub const FontHandle = struct {
@@ -68,6 +69,8 @@ pub const Document = struct {
 
     encryption_options: ?EncryptionOptions,
     bookmarks: ArrayList(Bookmark),
+    header: ?HeaderFooter,
+    footer: ?HeaderFooter,
 
     /// Creates a new empty PDF document.
     pub fn init(allocator: Allocator) Document {
@@ -86,6 +89,8 @@ pub const Document = struct {
             .producer = null,
             .encryption_options = null,
             .bookmarks = .{},
+            .header = null,
+            .footer = null,
         };
     }
 
@@ -125,6 +130,16 @@ pub const Document = struct {
 
     pub fn setCreator(self: *Document, creator: []const u8) void {
         self.creator = creator;
+    }
+
+    /// Sets the header configuration to be applied to all pages on save.
+    pub fn setHeader(self: *Document, header: HeaderFooter) void {
+        self.header = header;
+    }
+
+    /// Sets the footer configuration to be applied to all pages on save.
+    pub fn setFooter(self: *Document, footer: HeaderFooter) void {
+        self.footer = footer;
     }
 
     // -- Page management --
