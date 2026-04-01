@@ -334,6 +334,8 @@ pub const PdfWriter = struct {
             // Add attachment names to catalog
             if (attachment_names_ref) |names_ref| {
                 try catalog_dict.dict_obj.put(allocator, "Names", types.pdfRef(names_ref.obj_num, names_ref.gen_num));
+            }
+
             // Add named destinations to catalog
             if (doc.named_destinations.items.len > 0) {
                 var names_array = types.pdfArray(allocator);
