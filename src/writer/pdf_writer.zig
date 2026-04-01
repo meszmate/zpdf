@@ -14,6 +14,7 @@ const Page = @import("../document/page.zig").Page;
 const ObjectStore = @import("../core/object_store.zig").ObjectStore;
 const header_footer = @import("../layout/header_footer.zig");
 const pdfa = @import("../pdfa/pdfa.zig");
+const AttachmentBuilder = @import("../document/attachments.zig").AttachmentBuilder;
 
 /// PDF file serializer. Converts a Document into a complete PDF byte stream.
 pub const PdfWriter = struct {
@@ -258,6 +259,12 @@ pub const PdfWriter = struct {
             pdfa_output_intent_ref = try pdfa.buildOutputIntent(allocator, &store, icc_profile);
         }
 
+        // -- Build attachment objects if any --
+        var attachment_names_ref: ?Ref = null;
+        if (doc.attachment_builder) |*ab| {
+            attachment_names_ref = try ab.build(&store);
+        }
+
         // -- Build Catalog --
         const catalog_ref = try store.allocate();
         {
@@ -266,6 +273,11 @@ pub const PdfWriter = struct {
             try catalog_dict.dict_obj.put(allocator,"Pages", types.pdfRef(pages_ref.obj_num, pages_ref.gen_num));
             if (acroform_new_ref) |af_ref| {
                 try catalog_dict.dict_obj.put(allocator,"AcroForm", types.pdfRef(af_ref.obj_num, af_ref.gen_num));
+            }
+
+            // Add attachment names to catalog
+            if (attachment_names_ref) |names_ref| {
+                try catalog_dict.dict_obj.put(allocator, "Names", types.pdfRef(names_ref.obj_num, names_ref.gen_num));
             }
 
             // Add PDF/A entries to catalog
