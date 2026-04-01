@@ -30,6 +30,7 @@ pub fn build(b: *std.Build) void {
         "create_gradients",
         "headers_footers",
         "clipping",
+        "digital_signature",
         "pdfa_document",
     };
 
@@ -81,6 +82,7 @@ pub fn build(b: *std.Build) void {
         "tests/stream_writer_tests.zig",
         "tests/rich_text_tests.zig",
         "tests/header_footer_tests.zig",
+        "tests/signature_tests.zig",
         "tests/pdfa_tests.zig",
     };
 

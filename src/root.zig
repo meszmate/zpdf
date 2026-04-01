@@ -172,8 +172,15 @@ pub const security = struct {
     pub const md5 = @import("security/md5.zig");
     pub const aes = @import("security/aes.zig");
     pub const security_handler = @import("security/security_handler.zig");
+    pub const signature = @import("security/signature.zig");
+    pub const sha256 = @import("security/sha256.zig");
+    pub const pkcs7 = @import("security/pkcs7.zig");
 };
 pub const SecurityEncryptionOptions = security.security_handler.EncryptionOptions;
+pub const SignatureOptions = security.signature.SignatureOptions;
+pub const SignatureAppearance = security.signature.SignatureAppearance;
+pub const PreparedSignature = security.signature.PreparedSignature;
+pub const Sha256 = security.sha256.Sha256;
 
 // ── Barcode ──────────────────────────────────────────────────────────
 pub const barcode = struct {
