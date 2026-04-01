@@ -15,6 +15,7 @@ const EmbeddedFontData = font_embedder.EmbeddedFont;
 const PdfWriter = @import("../writer/pdf_writer.zig").PdfWriter;
 const stream_writer = @import("../writer/stream_writer.zig");
 const HeaderFooter = @import("../layout/header_footer.zig").HeaderFooter;
+const ConformanceLevel = @import("../pdfa/pdfa.zig").ConformanceLevel;
 
 /// Handle to a font resource within the document.
 pub const FontHandle = struct {
@@ -79,6 +80,7 @@ pub const Document = struct {
     producer: ?[]const u8,
 
     encryption_options: ?EncryptionOptions,
+    pdfa_level: ?ConformanceLevel,
     bookmarks: ArrayList(Bookmark),
     header: ?HeaderFooter,
     footer: ?HeaderFooter,
@@ -101,6 +103,7 @@ pub const Document = struct {
             .creator = null,
             .producer = null,
             .encryption_options = null,
+            .pdfa_level = null,
             .bookmarks = .{},
             .header = null,
             .footer = null,
@@ -164,6 +167,11 @@ pub const Document = struct {
     /// Sets the footer configuration to be applied to all pages on save.
     pub fn setFooter(self: *Document, footer: HeaderFooter) void {
         self.footer = footer;
+    }
+
+    /// Enable PDF/A conformance at the given level.
+    pub fn setPdfAConformance(self: *Document, level: ConformanceLevel) void {
+        self.pdfa_level = level;
     }
 
     // -- Page management --

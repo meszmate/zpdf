@@ -129,8 +129,14 @@ pub const table = struct {
 pub const form = struct {
     pub const Form = @import("form/form.zig");
     pub const form_builder = @import("form/form_builder.zig");
+    pub const form_filler = @import("form/form_filler.zig");
 };
 pub const FormBuilder = form.form_builder.FormBuilder;
+pub const fillForm = form.form_filler.fillForm;
+pub const flattenForm = form.form_filler.flattenForm;
+pub const fillAndFlatten = form.form_filler.fillAndFlatten;
+pub const FieldValue = form.form_filler.FieldValue;
+pub const FlattenOptions = form.form_filler.FlattenOptions;
 
 // ── Layout ──────────────────────────────────────────────────────────
 pub const layout = struct {
@@ -177,8 +183,15 @@ pub const security = struct {
     pub const md5 = @import("security/md5.zig");
     pub const aes = @import("security/aes.zig");
     pub const security_handler = @import("security/security_handler.zig");
+    pub const signature = @import("security/signature.zig");
+    pub const sha256 = @import("security/sha256.zig");
+    pub const pkcs7 = @import("security/pkcs7.zig");
 };
 pub const SecurityEncryptionOptions = security.security_handler.EncryptionOptions;
+pub const SignatureOptions = security.signature.SignatureOptions;
+pub const SignatureAppearance = security.signature.SignatureAppearance;
+pub const PreparedSignature = security.signature.PreparedSignature;
+pub const Sha256 = security.sha256.Sha256;
 
 // ── Barcode ──────────────────────────────────────────────────────────
 pub const barcode = struct {
@@ -223,6 +236,12 @@ pub const LayerBuilder = layers.LayerBuilder;
 // ── Structure (Tagged PDF / Accessibility) ──────────────────────────
 pub const structure = @import("structure/structure_tree.zig");
 pub const StructureTree = structure.StructureTree;
+
+// ── PDF/A (Archival Conformance) ────────────────────────────────────
+pub const pdfa = @import("pdfa/pdfa.zig");
+pub const PdfAConformanceLevel = pdfa.ConformanceLevel;
+pub const PdfAOptions = pdfa.PdfAOptions;
+pub const PdfAValidationResult = pdfa.ValidationResult;
 
 // ── Parser ───────────────────────────────────────────────────────────
 pub const parser = struct {
