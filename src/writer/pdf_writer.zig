@@ -325,7 +325,7 @@ pub const PdfWriter = struct {
     }
 };
 
-/// Recursively remap indirect references within a PdfObject to use new object numbers.
+// Recursively remap indirect references within a PdfObject to use new object numbers.
 fn remapRefsAuto(allocator: Allocator, obj: PdfObject, ref_map: *const std.AutoHashMapUnmanaged(u32, Ref)) Allocator.Error!PdfObject {
     switch (obj) {
         .ref_obj => |ref| {
