@@ -191,9 +191,13 @@ pub const writer = struct {
     pub const object_serializer = @import("writer/object_serializer.zig");
     pub const xref_writer = @import("writer/xref_writer.zig");
     pub const stream_writer = @import("writer/stream_writer.zig");
+    pub const linearizer = @import("writer/linearizer.zig");
 };
 pub const countingWriter = writer.stream_writer.countingWriter;
 pub const CountingWriter = writer.stream_writer.CountingWriter;
+pub const linearizePdf = writer.linearizer.linearizePdf;
+pub const isLinearized = writer.linearizer.isLinearized;
+pub const LinearizationOptions = writer.linearizer.LinearizationOptions;
 
 // ── Compress ─────────────────────────────────────────────────────────
 pub const compress = struct {
