@@ -73,8 +73,13 @@ pub const hexColor = color.hexColor;
 // ── Font ─────────────────────────────────────────────────────────────
 pub const standard_fonts = @import("font/standard_fonts.zig");
 pub const font_manager = @import("font/font_manager.zig");
+pub const truetype = @import("font/truetype.zig");
+pub const font_subsetter = @import("font/font_subsetter.zig");
+pub const font_embedder = @import("font/font_embedder.zig");
 pub const StandardFont = standard_fonts.StandardFont;
 pub const FontHandle = font_manager.FontHandle;
+pub const TrueTypeFont = truetype.TrueTypeFont;
+pub const TrueTypeFontHandle = document.doc.TrueTypeFontHandle;
 
 // ── Graphics ─────────────────────────────────────────────────────────
 pub const graphics = struct {

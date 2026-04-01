@@ -9,6 +9,9 @@ const Catalog = @import("../core/catalog.zig").Catalog;
 const Page = @import("page.zig").Page;
 const PageSize = @import("page_sizes.zig").PageSize;
 const StandardFont = @import("../font/standard_fonts.zig").StandardFont;
+const TrueTypeFont = @import("../font/truetype.zig").TrueTypeFont;
+const font_embedder = @import("../font/font_embedder.zig");
+const EmbeddedFontData = font_embedder.EmbeddedFont;
 const PdfWriter = @import("../writer/pdf_writer.zig").PdfWriter;
 const stream_writer = @import("../writer/stream_writer.zig");
 const HeaderFooter = @import("../layout/header_footer.zig").HeaderFooter;
@@ -18,6 +21,13 @@ const ConformanceLevel = @import("../pdfa/pdfa.zig").ConformanceLevel;
 pub const FontHandle = struct {
     ref: Ref,
     font: StandardFont,
+};
+
+/// Handle to a TrueType font resource within the document.
+pub const TrueTypeFontHandle = struct {
+    ref: Ref,
+    font: *TrueTypeFont,
+    name: []const u8,
 };
 
 /// Encryption options for document security.
@@ -74,6 +84,8 @@ pub const Document = struct {
     bookmarks: ArrayList(Bookmark),
     header: ?HeaderFooter,
     footer: ?HeaderFooter,
+    tt_fonts: ArrayList(*TrueTypeFont),
+    embedded_font_data: ArrayList(EmbeddedFontData),
 
     /// Creates a new empty PDF document.
     pub fn init(allocator: Allocator) Document {
@@ -95,6 +107,8 @@ pub const Document = struct {
             .bookmarks = .{},
             .header = null,
             .footer = null,
+            .tt_fonts = .{},
+            .embedded_font_data = .{},
         };
     }
 
@@ -112,6 +126,15 @@ pub const Document = struct {
             bm.deinit();
         }
         self.bookmarks.deinit(self.allocator);
+        for (self.embedded_font_data.items) |*efd| {
+            @constCast(efd).deinit();
+        }
+        self.embedded_font_data.deinit(self.allocator);
+        for (self.tt_fonts.items) |tt_font| {
+            @constCast(tt_font).deinit();
+            self.allocator.destroy(tt_font);
+        }
+        self.tt_fonts.deinit(self.allocator);
     }
 
     // -- Metadata setters --
@@ -225,6 +248,33 @@ pub const Document = struct {
     /// Enables encryption with the given options.
     pub fn encrypt(self: *Document, options: EncryptionOptions) void {
         self.encryption_options = options;
+    }
+
+    /// Load and register a TrueType font from raw font data.
+    /// The font is parsed and stored; it can be used on pages via the returned handle.
+    pub fn loadTrueTypeFont(self: *Document, font_data: []const u8) !TrueTypeFontHandle {
+        const tt_font = try self.allocator.create(TrueTypeFont);
+        errdefer self.allocator.destroy(tt_font);
+
+        tt_font.* = try TrueTypeFont.init(self.allocator, font_data);
+        errdefer tt_font.deinit();
+
+        // Embed the font (with no used chars initially; the full embedding
+        // happens at save time, but we register the font object now)
+        const used_chars = [_]u32{};
+        var embedded = try font_embedder.embedFont(self.allocator, &self.object_store, tt_font, &used_chars);
+        errdefer embedded.deinit();
+
+        const pdf_name = tt_font.postscript_name;
+        try self.font_refs.put(self.allocator, pdf_name, embedded.ref);
+        try self.tt_fonts.append(self.allocator, tt_font);
+        try self.embedded_font_data.append(self.allocator, embedded);
+
+        return TrueTypeFontHandle{
+            .ref = embedded.ref,
+            .font = tt_font,
+            .name = embedded.name,
+        };
     }
 
     /// Serializes the entire document to PDF bytes.
