@@ -34,6 +34,7 @@ pub fn build(b: *std.Build) void {
         "fill_form",
         "digital_signature",
         "pdfa_document",
+        "data_matrix",
         "lists",
     };
 
@@ -89,6 +90,7 @@ pub fn build(b: *std.Build) void {
         "tests/form_filler_tests.zig",
         "tests/signature_tests.zig",
         "tests/pdfa_tests.zig",
+        "tests/data_matrix_tests.zig",
         "tests/list_tests.zig",
     };
 

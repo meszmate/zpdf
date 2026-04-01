@@ -205,6 +205,7 @@ pub const barcode = struct {
     pub const code39 = @import("barcode/code39.zig");
     pub const ean13 = @import("barcode/ean13.zig");
     pub const qr_code = @import("barcode/qr/qr_code.zig");
+    pub const data_matrix = @import("barcode/data_matrix.zig");
 };
 pub const drawBarcode = barcode.barcode_api.drawBarcode;
 
