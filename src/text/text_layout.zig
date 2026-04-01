@@ -2,10 +2,13 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 const StandardFont = @import("../font/standard_fonts.zig").StandardFont;
+const Hyphenator = @import("hyphenation.zig").Hyphenator;
+const Language = @import("hyphenation.zig").Language;
 
 /// A single laid-out line of text with its measured width.
 pub const TextLine = struct {
-    /// The text content of this line (a slice into the original string).
+    /// The text content of this line (a slice into the original string, or
+    /// an allocated string if the line was produced by hyphenation).
     text: []const u8,
     /// The measured width of this line in PDF points.
     width: f32,
@@ -13,6 +16,14 @@ pub const TextLine = struct {
     start: usize,
     /// Byte offset of the end of this line in the original text (exclusive).
     end: usize,
+    /// Whether this line's text was allocated (needs freeing).
+    allocated: bool = false,
+};
+
+/// Options for text layout with hyphenation.
+pub const LayoutOptions = struct {
+    hyphenate: bool = false,
+    language: Language = .english,
 };
 
 /// Lays out text into lines, splitting on whitespace and wrapping at max_width.
@@ -25,8 +36,28 @@ pub fn layoutText(
     font_size: f32,
     max_width: ?f32,
 ) ![]TextLine {
+    return layoutTextWithOptions(allocator, text, font, font_size, max_width, .{});
+}
+
+/// Lays out text with optional hyphenation.
+/// Caller owns the returned slice and must free it with the same allocator.
+/// When hyphenation produces new text (with hyphens), those strings are allocated
+/// and must also be freed. Use `freeTextLines` for correct cleanup.
+pub fn layoutTextWithOptions(
+    allocator: Allocator,
+    text: []const u8,
+    font: StandardFont,
+    font_size: f32,
+    max_width: ?f32,
+    options: LayoutOptions,
+) ![]TextLine {
     var lines: ArrayList(TextLine) = .{};
-    errdefer lines.deinit(allocator);
+    errdefer {
+        for (lines.items) |line| {
+            if (line.allocated) allocator.free(line.text);
+        }
+        lines.deinit(allocator);
+    }
 
     if (text.len == 0) {
         return lines.toOwnedSlice(allocator);
@@ -53,7 +84,7 @@ pub fn layoutText(
             });
         } else {
             // Wrap this paragraph.
-            try wrapParagraph(allocator, &lines, paragraph, para_start, font, font_size, max_width);
+            try wrapParagraph(allocator, &lines, paragraph, para_start, font, font_size, max_width, options);
         }
 
         para_start = para_end + 1;
@@ -62,7 +93,15 @@ pub fn layoutText(
     return lines.toOwnedSlice(allocator);
 }
 
-/// Wraps a single paragraph (no embedded newlines) into lines.
+/// Free text lines including any allocated hyphenated text.
+pub fn freeTextLines(allocator: Allocator, lines: []TextLine) void {
+    for (lines) |line| {
+        if (line.allocated) allocator.free(line.text);
+    }
+    allocator.free(lines);
+}
+
+// Wraps a single paragraph (no embedded newlines) into lines.
 fn wrapParagraph(
     allocator: Allocator,
     lines: *ArrayList(TextLine),
@@ -71,6 +110,7 @@ fn wrapParagraph(
     font: StandardFont,
     font_size: f32,
     max_width: ?f32,
+    options: LayoutOptions,
 ) !void {
     const space_width = font.textWidth(" ", font_size);
     const limit = max_width orelse std.math.floatMax(f32);
@@ -95,7 +135,50 @@ fn wrapParagraph(
                 const word_width = font.textWidth(word, font_size);
 
                 if (line_width > 0 and line_width + space_width + word_width > limit) {
-                    // Wrap: emit current line, start new one with this word.
+                    // Word doesn't fit. Try hyphenation if enabled.
+                    if (options.hyphenate and word.len >= 5) {
+                        const hyph_result = try tryHyphenateWord(
+                            allocator,
+                            word,
+                            font,
+                            font_size,
+                            limit - line_width - space_width,
+                            options.language,
+                        );
+
+                        if (hyph_result.first_part) |first_part| {
+                            // We found a valid hyphenation point.
+                            // Build the line text: existing line + space + first_part + "-"
+                            const hyphenated = try std.fmt.allocPrint(allocator, "{s} {s}-", .{
+                                paragraph[line_start..word_start -| 1],
+                                first_part,
+                            });
+                            // Trim trailing space if line_start == word_start (shouldn't happen but safe)
+                            const measured = font.textWidth(hyphenated, font_size);
+                            try lines.append(allocator, .{
+                                .text = hyphenated,
+                                .width = measured,
+                                .start = base_offset + line_start,
+                                .end = base_offset + word_start + hyph_result.split_at,
+                                .allocated = true,
+                            });
+
+                            // Start new line with the remainder of the word.
+                            line_start = word_start + hyph_result.split_at;
+                            const remainder = paragraph[line_start..i];
+                            line_width = font.textWidth(remainder, font_size);
+
+                            // Skip spaces after word
+                            if (i == paragraph.len) break;
+                            while (i < paragraph.len and paragraph[i] == ' ') {
+                                i += 1;
+                            }
+                            word_start = i;
+                            continue;
+                        }
+                    }
+
+                    // No hyphenation or hyphenation didn't help: wrap normally.
                     var trimmed_end = word_start;
                     while (trimmed_end > line_start and paragraph[trimmed_end - 1] == ' ') {
                         trimmed_end -= 1;
@@ -144,6 +227,50 @@ fn wrapParagraph(
             .end = base_offset + trimmed_end,
         });
     }
+}
+
+const HyphenResult = struct {
+    first_part: ?[]const u8,
+    split_at: usize, // byte index into the word where the split occurs
+};
+
+// Try to hyphenate a word to fit within the available width.
+// Returns the first part (without hyphen) and the byte index of the split.
+fn tryHyphenateWord(
+    allocator: Allocator,
+    word: []const u8,
+    font: StandardFont,
+    font_size: f32,
+    available_width: f32,
+    language: Language,
+) !HyphenResult {
+    const hyphenator = Hyphenator.init(language);
+    const points = try hyphenator.hyphenate(allocator, word);
+    defer allocator.free(points);
+
+    if (points.len == 0) return .{ .first_part = null, .split_at = 0 };
+
+    const hyphen_width = font.textWidth("-", font_size);
+
+    // Try break points from last to first to maximize the text on the current line.
+    var best_point: ?usize = null;
+    var idx: usize = points.len;
+    while (idx > 0) {
+        idx -= 1;
+        const pt = points[idx];
+        const part = word[0..pt];
+        const part_width = font.textWidth(part, font_size) + hyphen_width;
+        if (part_width <= available_width) {
+            best_point = pt;
+            break;
+        }
+    }
+
+    if (best_point) |bp| {
+        return .{ .first_part = word[0..bp], .split_at = bp };
+    }
+
+    return .{ .first_part = null, .split_at = 0 };
 }
 
 /// Calculates the total height needed to render the given lines.
