@@ -219,6 +219,7 @@ pub const PdfWriter = struct {
                     }
                 }
             }
+        }
         // -- Build PDF/A objects if needed --
         var pdfa_metadata_ref: ?Ref = null;
         var pdfa_output_intent_ref: ?Ref = null;
