@@ -124,8 +124,14 @@ pub const table = struct {
 pub const form = struct {
     pub const Form = @import("form/form.zig");
     pub const form_builder = @import("form/form_builder.zig");
+    pub const form_filler = @import("form/form_filler.zig");
 };
 pub const FormBuilder = form.form_builder.FormBuilder;
+pub const fillForm = form.form_filler.fillForm;
+pub const flattenForm = form.form_filler.flattenForm;
+pub const fillAndFlatten = form.form_filler.fillAndFlatten;
+pub const FieldValue = form.form_filler.FieldValue;
+pub const FlattenOptions = form.form_filler.FlattenOptions;
 
 // ── Layout ──────────────────────────────────────────────────────────
 pub const layout = struct {
