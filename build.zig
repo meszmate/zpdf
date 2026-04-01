@@ -31,6 +31,7 @@ pub fn build(b: *std.Build) void {
         "headers_footers",
         "clipping",
         "digital_signature",
+        "pdfa_document",
     };
 
     for (examples) |example_name| {
@@ -82,6 +83,7 @@ pub fn build(b: *std.Build) void {
         "tests/rich_text_tests.zig",
         "tests/header_footer_tests.zig",
         "tests/signature_tests.zig",
+        "tests/pdfa_tests.zig",
     };
 
     const test_step = b.step("test", "Run unit tests");
