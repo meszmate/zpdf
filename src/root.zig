@@ -259,6 +259,7 @@ pub const modify = struct {
     pub const splitter = @import("modify/splitter.zig");
     pub const watermarker = @import("modify/watermarker.zig");
     pub const incremental = @import("modify/incremental.zig");
+    pub const redaction = @import("modify/redaction.zig");
 };
 pub const PdfMerger = modify.merger.PdfMerger;
 pub const IncrementalUpdate = modify.incremental.IncrementalUpdate;
