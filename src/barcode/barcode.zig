@@ -6,6 +6,7 @@ const ean13 = @import("ean13.zig");
 const ean8 = @import("ean8.zig");
 const upca = @import("upca.zig");
 const qr_code = @import("qr/qr_code.zig");
+const data_matrix = @import("data_matrix.zig");
 
 /// Supported barcode types.
 pub const BarcodeType = enum {
@@ -15,6 +16,7 @@ pub const BarcodeType = enum {
     ean8,
     upca,
     qr,
+    data_matrix,
 };
 
 /// Options for drawing a barcode.
@@ -44,6 +46,7 @@ pub fn drawBarcode(allocator: Allocator, options: BarcodeOptions) ![]u8 {
             const size = @min(options.width, options.height);
             return try qr.render(allocator, options.x, options.y, size);
         },
+        .data_matrix => try data_matrix.render(allocator, options.value, options.x, options.y, options.width, options.height),
     };
 }
 

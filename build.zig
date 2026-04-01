@@ -35,6 +35,9 @@ pub fn build(b: *std.Build) void {
         "digital_signature",
         "pdfa_document",
         "upca_ean8",
+        "multi_column",
+        "data_matrix",
+        "lists",
     };
 
     for (examples) |example_name| {
@@ -90,6 +93,9 @@ pub fn build(b: *std.Build) void {
         "tests/signature_tests.zig",
         "tests/pdfa_tests.zig",
         "tests/upca_ean8_tests.zig",
+        "tests/columns_tests.zig",
+        "tests/data_matrix_tests.zig",
+        "tests/list_tests.zig",
     };
 
     const test_step = b.step("test", "Run unit tests");
