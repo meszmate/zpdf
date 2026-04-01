@@ -141,6 +141,7 @@ pub const form = struct {
     pub const Form = @import("form/form.zig");
     pub const form_builder = @import("form/form_builder.zig");
     pub const form_filler = @import("form/form_filler.zig");
+    pub const fdf = @import("form/fdf.zig");
 };
 pub const FormBuilder = form.form_builder.FormBuilder;
 pub const fillForm = form.form_filler.fillForm;
@@ -148,6 +149,12 @@ pub const flattenForm = form.form_filler.flattenForm;
 pub const fillAndFlatten = form.form_filler.fillAndFlatten;
 pub const FieldValue = form.form_filler.FieldValue;
 pub const FlattenOptions = form.form_filler.FlattenOptions;
+pub const exportFdf = form.fdf.exportFdf;
+pub const exportXfdf = form.fdf.exportXfdf;
+pub const importFdf = form.fdf.importFdf;
+pub const importXfdf = form.fdf.importXfdf;
+pub const parseFdf = form.fdf.parseFdf;
+pub const parseXfdf = form.fdf.parseXfdf;
 
 // ── Layout ──────────────────────────────────────────────────────────
 pub const layout = struct {

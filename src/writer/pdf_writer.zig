@@ -288,7 +288,7 @@ pub const PdfWriter = struct {
 
             try buffer.writeFmt("{d} {d} obj\n", .{ entry.ref.obj_num, entry.ref.gen_num });
             if (entry.object) |obj| {
-                try writeObjectToBuf(&buffer, obj);
+                try object_serializer.writeObject(&buffer, obj);
             } else {
                 try buffer.write("null");
             }
