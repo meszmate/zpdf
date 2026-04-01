@@ -16,6 +16,9 @@ const PdfWriter = @import("../writer/pdf_writer.zig").PdfWriter;
 const stream_writer = @import("../writer/stream_writer.zig");
 const HeaderFooter = @import("../layout/header_footer.zig").HeaderFooter;
 const ConformanceLevel = @import("../pdfa/pdfa.zig").ConformanceLevel;
+const attachments_mod = @import("attachments.zig");
+pub const Attachment = attachments_mod.Attachment;
+const AttachmentBuilder = attachments_mod.AttachmentBuilder;
 
 /// Handle to a font resource within the document.
 pub const FontHandle = struct {
@@ -86,6 +89,7 @@ pub const Document = struct {
     footer: ?HeaderFooter,
     tt_fonts: ArrayList(*TrueTypeFont),
     embedded_font_data: ArrayList(EmbeddedFontData),
+    attachment_builder: ?AttachmentBuilder,
 
     /// Creates a new empty PDF document.
     pub fn init(allocator: Allocator) Document {
@@ -109,6 +113,7 @@ pub const Document = struct {
             .footer = null,
             .tt_fonts = .{},
             .embedded_font_data = .{},
+            .attachment_builder = null,
         };
     }
 
@@ -135,6 +140,9 @@ pub const Document = struct {
             self.allocator.destroy(tt_font);
         }
         self.tt_fonts.deinit(self.allocator);
+        if (self.attachment_builder) |*ab| {
+            ab.deinit();
+        }
     }
 
     // -- Metadata setters --
@@ -243,6 +251,14 @@ pub const Document = struct {
         const idx = self.bookmarks.items.len;
         try self.bookmarks.append(self.allocator, Bookmark.init(self.allocator, title, page_index));
         return idx;
+    }
+
+    /// Adds an embedded file attachment to the document.
+    pub fn addAttachment(self: *Document, attachment: Attachment) !void {
+        if (self.attachment_builder == null) {
+            self.attachment_builder = AttachmentBuilder.init(self.allocator);
+        }
+        try self.attachment_builder.?.addAttachment(attachment);
     }
 
     /// Enables encryption with the given options.
