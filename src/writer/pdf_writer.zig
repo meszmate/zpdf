@@ -124,6 +124,14 @@ pub const PdfWriter = struct {
                 }
             }
 
+            // Build ExtGState resource dict for this page
+            var gs_dict = types.pdfDict(allocator);
+            {
+                for (page.resources.ext_g_states.items) |gs| {
+                    try gs_dict.dict_obj.put(allocator, gs.name, types.pdfRef(gs.ref.obj_num, gs.ref.gen_num));
+                }
+            }
+
             // Build resources dict
             var resources_dict = types.pdfDict(allocator);
             if (font_dict.dict_obj.count() > 0) {
@@ -135,6 +143,11 @@ pub const PdfWriter = struct {
                 try resources_dict.dict_obj.put(allocator, "Pattern", pattern_dict);
             } else {
                 pattern_dict.deinit(allocator);
+            }
+            if (gs_dict.dict_obj.count() > 0) {
+                try resources_dict.dict_obj.put(allocator, "ExtGState", gs_dict);
+            } else {
+                gs_dict.deinit(allocator);
             }
 
             // Build page dict (parent will be set after we know pages_ref)

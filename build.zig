@@ -39,6 +39,7 @@ pub fn build(b: *std.Build) void {
         "data_matrix",
         "lists",
         "hyphenation",
+        "soft_masks",
     };
 
     for (examples) |example_name| {
@@ -98,6 +99,7 @@ pub fn build(b: *std.Build) void {
         "tests/data_matrix_tests.zig",
         "tests/list_tests.zig",
         "tests/hyphenation_tests.zig",
+        "tests/soft_mask_tests.zig",
     };
 
     const test_step = b.step("test", "Run unit tests");

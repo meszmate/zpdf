@@ -42,25 +42,35 @@ pub const PatternResource = struct {
     name: []const u8,
 };
 
-/// Page-level resources (fonts, images, patterns, etc.).
+/// An ExtGState resource registered on a page.
+pub const ExtGStateResource = struct {
+    ref: Ref,
+    name: []const u8,
+};
+
+/// Page-level resources (fonts, images, patterns, ExtGState, etc.).
 pub const Resources = struct {
     fonts: StringHashMap(FontResource),
     images: ArrayList(ImageResource),
     patterns: StringHashMap(PatternResource),
+    ext_g_states: ArrayList(ExtGStateResource),
     allocator: Allocator,
     font_count: u32,
     image_count: u32,
     pattern_count: u32,
+    gs_count: u32,
 
     pub fn init(allocator: Allocator) Resources {
         return .{
             .fonts = .{},
             .images = .{},
             .patterns = .{},
+            .ext_g_states = .{},
             .allocator = allocator,
             .font_count = 0,
             .image_count = 0,
             .pattern_count = 0,
+            .gs_count = 0,
         };
     }
 
@@ -76,6 +86,10 @@ pub const Resources = struct {
             self.allocator.free(entry.value_ptr.name);
         }
         self.patterns.deinit(self.allocator);
+        for (self.ext_g_states.items) |gs| {
+            self.allocator.free(gs.name);
+        }
+        self.ext_g_states.deinit(self.allocator);
     }
 };
 
@@ -301,6 +315,32 @@ pub const Page = struct {
         const writer = self.contentWriter();
         try writer.writeAll("/Pattern cs\n");
         try writer.print("/{s} scn\n", .{pattern_name});
+    }
+
+    /// Registers an ExtGState resource on this page and returns the resource name (e.g. "GS1").
+    pub fn addExtGState(self: *Page, ref: Ref) ![]const u8 {
+        self.resources.gs_count += 1;
+        const name = try std.fmt.allocPrint(self.allocator, "GS{d}", .{self.resources.gs_count});
+        try self.resources.ext_g_states.append(self.allocator, .{ .ref = ref, .name = name });
+        return name;
+    }
+
+    /// Applies a soft mask to subsequent drawing operations.
+    /// The `gs_ref` should be a reference to an ExtGState object containing an /SMask entry
+    /// (as built by `soft_mask.buildSoftMask`).
+    pub fn setSoftMask(self: *Page, gs_ref: Ref) !void {
+        const gs_name = try self.addExtGState(gs_ref);
+        const writer = self.contentWriter();
+        try writer.print("/{s} gs\n", .{gs_name});
+    }
+
+    /// Clears the current soft mask by applying an ExtGState with /SMask /None.
+    /// The `gs_ref` should be a reference to an ExtGState with SMask set to None
+    /// (as built by `soft_mask.buildClearSoftMask`).
+    pub fn clearSoftMask(self: *Page, gs_ref: Ref) !void {
+        const gs_name = try self.addExtGState(gs_ref);
+        const writer = self.contentWriter();
+        try writer.print("/{s} gs\n", .{gs_name});
     }
 
     fn contentWriter(self: *Page) ArrayList(u8).Writer {
