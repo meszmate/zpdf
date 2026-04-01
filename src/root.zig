@@ -142,6 +142,7 @@ pub const FlattenOptions = form.form_filler.FlattenOptions;
 pub const layout = struct {
     pub const header_footer = @import("layout/header_footer.zig");
     pub const columns_mod = @import("layout/columns.zig");
+    pub const lists = @import("layout/lists.zig");
 };
 pub const HeaderFooter = layout.header_footer.HeaderFooter;
 pub const HFElement = layout.header_footer.HFElement;
@@ -152,6 +153,10 @@ pub const ColumnContent = layout.columns_mod.ColumnContent;
 pub const TextContent = layout.columns_mod.TextContent;
 pub const RichTextContent = layout.columns_mod.RichTextContent;
 pub const columnWidth = layout.columns_mod.columnWidth;
+pub const ListStyle = layout.lists.ListStyle;
+pub const ListItem = layout.lists.ListItem;
+pub const ListOptions = layout.lists.ListOptions;
+pub const drawList = layout.lists.drawList;
 
 // ── Writer ───────────────────────────────────────────────────────────
 pub const writer = struct {
@@ -206,6 +211,7 @@ pub const barcode = struct {
     pub const code39 = @import("barcode/code39.zig");
     pub const ean13 = @import("barcode/ean13.zig");
     pub const qr_code = @import("barcode/qr/qr_code.zig");
+    pub const data_matrix = @import("barcode/data_matrix.zig");
 };
 pub const drawBarcode = barcode.barcode_api.drawBarcode;
 
