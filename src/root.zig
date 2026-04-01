@@ -43,6 +43,7 @@ pub const document = struct {
     pub const page = @import("document/page.zig");
     pub const page_sizes = @import("document/page_sizes.zig");
     pub const attachments = @import("document/attachments.zig");
+    pub const destinations = @import("document/destinations.zig");
 };
 pub const Document = document.doc.Document;
 pub const Page = document.page.Page;
@@ -52,6 +53,11 @@ pub const PathBuilder = document.page.PathBuilder;
 pub const EncryptionOptions = document.doc.EncryptionOptions;
 pub const Attachment = document.doc.Attachment;
 pub const AttachmentBuilder = document.attachments.AttachmentBuilder;
+pub const Destination = document.doc.Destination;
+pub const DestinationType = document.doc.DestinationType;
+pub const InternalLink = document.doc.InternalLink;
+pub const TocEntry = document.doc.TocEntry;
+pub const TocOptions = document.doc.TocOptions;
 
 // ── Core (low-level PDF objects) ─────────────────────────────────────
 pub const core = struct {

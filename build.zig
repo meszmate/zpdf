@@ -43,6 +43,7 @@ pub fn build(b: *std.Build) void {
         "soft_masks",
         "attachments",
         "redaction",
+        "named_destinations",
     };
 
     for (examples) |example_name| {
@@ -106,6 +107,7 @@ pub fn build(b: *std.Build) void {
         "tests/soft_mask_tests.zig",
         "tests/attachment_tests.zig",
         "tests/redaction_tests.zig",
+        "tests/destinations_tests.zig",
     };
 
     const test_step = b.step("test", "Run unit tests");

@@ -11,6 +11,7 @@ const xref_writer = @import("xref_writer.zig");
 const XrefEntry = xref_writer.XrefEntry;
 const Document = @import("../document/document.zig").Document;
 const Page = @import("../document/page.zig").Page;
+const color_mod = @import("../color/color.zig");
 const ObjectStore = @import("../core/object_store.zig").ObjectStore;
 const header_footer = @import("../layout/header_footer.zig");
 const pdfa = @import("../pdfa/pdfa.zig");
@@ -169,6 +170,61 @@ pub const PdfWriter = struct {
                 try page_dict.dict_obj.put(allocator,"Rotate", types.pdfInt(@intCast(page.rotation)));
             }
 
+            // Build internal link annotations for this page
+            {
+                var annots_array = types.pdfArray(allocator);
+                const page_idx = page_refs.items.len - 1; // current page index
+
+                for (doc.internal_links.items) |il| {
+                    if (il.page_index == page_idx) {
+                        const annot_ref = try store.allocate();
+
+                        var annot_dict = types.pdfDict(allocator);
+                        try annot_dict.dict_obj.put(allocator, "Type", types.pdfName("Annot"));
+                        try annot_dict.dict_obj.put(allocator, "Subtype", types.pdfName("Link"));
+
+                        var rect_arr = types.pdfArray(allocator);
+                        try rect_arr.array_obj.append(types.pdfReal(@floatCast(il.link.rect[0])));
+                        try rect_arr.array_obj.append(types.pdfReal(@floatCast(il.link.rect[1])));
+                        try rect_arr.array_obj.append(types.pdfReal(@floatCast(il.link.rect[2])));
+                        try rect_arr.array_obj.append(types.pdfReal(@floatCast(il.link.rect[3])));
+                        try annot_dict.dict_obj.put(allocator, "Rect", rect_arr);
+
+                        // Border
+                        var border_arr = types.pdfArray(allocator);
+                        try border_arr.array_obj.append(types.pdfReal(0));
+                        try border_arr.array_obj.append(types.pdfReal(0));
+                        try border_arr.array_obj.append(types.pdfReal(@floatCast(il.link.border_width)));
+                        try annot_dict.dict_obj.put(allocator, "Border", border_arr);
+
+                        // Color
+                        if (il.link.color) |c| {
+                            const rgb_val = c.toRgb();
+                            var color_arr = types.pdfArray(allocator);
+                            try color_arr.array_obj.append(types.pdfReal(@as(f64, @floatFromInt(rgb_val.r)) / 255.0));
+                            try color_arr.array_obj.append(types.pdfReal(@as(f64, @floatFromInt(rgb_val.g)) / 255.0));
+                            try color_arr.array_obj.append(types.pdfReal(@as(f64, @floatFromInt(rgb_val.b)) / 255.0));
+                            try annot_dict.dict_obj.put(allocator, "C", color_arr);
+                        }
+
+                        // Destination reference by name
+                        try annot_dict.dict_obj.put(allocator, "Dest", types.pdfString(il.link.dest_name));
+
+                        // Print flag
+                        try annot_dict.dict_obj.put(allocator, "F", types.pdfInt(4));
+
+                        store.put(annot_ref, annot_dict);
+                        try annots_array.array_obj.append(types.pdfRef(annot_ref.obj_num, annot_ref.gen_num));
+                    }
+                }
+
+                if (annots_array.array_obj.list.items.len > 0) {
+                    try page_dict.dict_obj.put(allocator, "Annots", annots_array);
+                } else {
+                    annots_array.deinit(allocator);
+                }
+            }
+
             store.put(page_ref, page_dict);
         }
 
@@ -278,6 +334,80 @@ pub const PdfWriter = struct {
             // Add attachment names to catalog
             if (attachment_names_ref) |names_ref| {
                 try catalog_dict.dict_obj.put(allocator, "Names", types.pdfRef(names_ref.obj_num, names_ref.gen_num));
+            // Add named destinations to catalog
+            if (doc.named_destinations.items.len > 0) {
+                var names_array = types.pdfArray(allocator);
+                for (doc.named_destinations.items) |dest| {
+                    // Name string
+                    try names_array.array_obj.append(types.pdfString(dest.name));
+
+                    // Destination array: [page_ref /Type params...]
+                    var dest_arr = types.pdfArray(allocator);
+                    if (dest.page_index < page_refs.items.len) {
+                        const pref = page_refs.items[dest.page_index];
+                        try dest_arr.array_obj.append(types.pdfRef(pref.obj_num, pref.gen_num));
+                    } else {
+                        try dest_arr.array_obj.append(types.pdfInt(0));
+                    }
+
+                    switch (dest.dest_type) {
+                        .xyz => {
+                            try dest_arr.array_obj.append(types.pdfName("XYZ"));
+                            if (dest.left) |l| {
+                                try dest_arr.array_obj.append(types.pdfReal(@floatCast(l)));
+                            } else {
+                                try dest_arr.array_obj.append(.null_obj);
+                            }
+                            if (dest.top) |t| {
+                                try dest_arr.array_obj.append(types.pdfReal(@floatCast(t)));
+                            } else {
+                                try dest_arr.array_obj.append(.null_obj);
+                            }
+                            if (dest.zoom) |z| {
+                                try dest_arr.array_obj.append(types.pdfReal(@floatCast(z)));
+                            } else {
+                                try dest_arr.array_obj.append(.null_obj);
+                            }
+                        },
+                        .fit => {
+                            try dest_arr.array_obj.append(types.pdfName("Fit"));
+                        },
+                        .fit_h => {
+                            try dest_arr.array_obj.append(types.pdfName("FitH"));
+                            if (dest.top) |t| {
+                                try dest_arr.array_obj.append(types.pdfReal(@floatCast(t)));
+                            } else {
+                                try dest_arr.array_obj.append(.null_obj);
+                            }
+                        },
+                        .fit_v => {
+                            try dest_arr.array_obj.append(types.pdfName("FitV"));
+                            if (dest.left) |l| {
+                                try dest_arr.array_obj.append(types.pdfReal(@floatCast(l)));
+                            } else {
+                                try dest_arr.array_obj.append(.null_obj);
+                            }
+                        },
+                        .fit_r => {
+                            try dest_arr.array_obj.append(types.pdfName("FitR"));
+                            try dest_arr.array_obj.append(types.pdfReal(@floatCast(dest.left orelse 0)));
+                            try dest_arr.array_obj.append(types.pdfReal(@floatCast(dest.bottom orelse 0)));
+                            try dest_arr.array_obj.append(types.pdfReal(@floatCast(dest.right orelse 0)));
+                            try dest_arr.array_obj.append(types.pdfReal(@floatCast(dest.top orelse 0)));
+                        },
+                    }
+
+                    try names_array.array_obj.append(dest_arr);
+                }
+
+                // Build /Names << /Dests << /Names [...] >> >>
+                var dests_dict = types.pdfDict(allocator);
+                try dests_dict.dict_obj.put(allocator, "Names", names_array);
+
+                var names_dict = types.pdfDict(allocator);
+                try names_dict.dict_obj.put(allocator, "Dests", dests_dict);
+
+                try catalog_dict.dict_obj.put(allocator, "Names", names_dict);
             }
 
             // Add PDF/A entries to catalog

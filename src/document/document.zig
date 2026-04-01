@@ -19,6 +19,13 @@ const ConformanceLevel = @import("../pdfa/pdfa.zig").ConformanceLevel;
 const attachments_mod = @import("attachments.zig");
 pub const Attachment = attachments_mod.Attachment;
 const AttachmentBuilder = attachments_mod.AttachmentBuilder;
+const destinations = @import("destinations.zig");
+pub const Destination = destinations.Destination;
+pub const DestinationType = destinations.DestinationType;
+pub const InternalLink = destinations.InternalLink;
+pub const TocEntry = destinations.TocEntry;
+pub const TocOptions = destinations.TocOptions;
+pub const PageInternalLink = destinations.PageInternalLink;
 
 /// Handle to a font resource within the document.
 pub const FontHandle = struct {
@@ -85,6 +92,9 @@ pub const Document = struct {
     encryption_options: ?EncryptionOptions,
     pdfa_level: ?ConformanceLevel,
     bookmarks: ArrayList(Bookmark),
+    named_destinations: ArrayList(Destination),
+    internal_links: ArrayList(PageInternalLink),
+    toc_allocated_names: ArrayList([]const u8),
     header: ?HeaderFooter,
     footer: ?HeaderFooter,
     tt_fonts: ArrayList(*TrueTypeFont),
@@ -109,6 +119,9 @@ pub const Document = struct {
             .encryption_options = null,
             .pdfa_level = null,
             .bookmarks = .{},
+            .named_destinations = .{},
+            .internal_links = .{},
+            .toc_allocated_names = .{},
             .header = null,
             .footer = null,
             .tt_fonts = .{},
@@ -131,6 +144,12 @@ pub const Document = struct {
             bm.deinit();
         }
         self.bookmarks.deinit(self.allocator);
+        self.named_destinations.deinit(self.allocator);
+        self.internal_links.deinit(self.allocator);
+        for (self.toc_allocated_names.items) |name| {
+            self.allocator.free(name);
+        }
+        self.toc_allocated_names.deinit(self.allocator);
         for (self.embedded_font_data.items) |*efd| {
             @constCast(efd).deinit();
         }
@@ -259,6 +278,33 @@ pub const Document = struct {
             self.attachment_builder = AttachmentBuilder.init(self.allocator);
         }
         try self.attachment_builder.?.addAttachment(attachment);
+    /// Adds a named destination to the document.
+    pub fn addNamedDestination(self: *Document, dest: Destination) !void {
+        try self.named_destinations.append(self.allocator, dest);
+    }
+
+    /// Adds an internal link annotation on the specified page.
+    pub fn addInternalLink(self: *Document, page_index: usize, link: InternalLink) !void {
+        try self.internal_links.append(self.allocator, .{
+            .page_index = page_index,
+            .link = link,
+        });
+    }
+
+    /// Render a table of contents on the given page with clickable links.
+    /// Returns the total height consumed by the TOC block.
+    pub fn renderToc(self: *Document, page_index: usize, entries: []const TocEntry, options: TocOptions) !f32 {
+        const page = self.pages.items[page_index];
+        return destinations.renderToc(
+            self.allocator,
+            page,
+            entries,
+            &self.named_destinations,
+            &self.internal_links,
+            &self.toc_allocated_names,
+            page_index,
+            options,
+        );
     }
 
     /// Enables encryption with the given options.
