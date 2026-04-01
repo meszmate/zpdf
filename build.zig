@@ -38,6 +38,7 @@ pub fn build(b: *std.Build) void {
         "multi_column",
         "data_matrix",
         "lists",
+        "hyphenation",
     };
 
     for (examples) |example_name| {
@@ -96,6 +97,7 @@ pub fn build(b: *std.Build) void {
         "tests/columns_tests.zig",
         "tests/data_matrix_tests.zig",
         "tests/list_tests.zig",
+        "tests/hyphenation_tests.zig",
     };
 
     const test_step = b.step("test", "Run unit tests");

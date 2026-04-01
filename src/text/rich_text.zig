@@ -2,6 +2,8 @@ const std = @import("std");
 const Color = @import("../color/color.zig").Color;
 const StandardFont = @import("../font/standard_fonts.zig").StandardFont;
 const Page = @import("../document/page.zig").Page;
+const Hyphenator = @import("hyphenation.zig").Hyphenator;
+const Language = @import("hyphenation.zig").Language;
 
 /// A span of text with uniform styling.
 pub const TextSpan = struct {
@@ -38,6 +40,10 @@ pub const RichTextOptions = struct {
     alignment: RichTextAlignment = .left,
     /// First line indent in points
     first_line_indent: f32 = 0,
+    /// Enable word hyphenation at line breaks.
+    hyphenate: bool = false,
+    /// Language for hyphenation patterns.
+    hyphenation_language: Language = .english,
 };
 
 /// A laid-out piece of a span on a single line.
@@ -155,6 +161,13 @@ pub fn drawRichText(
     var line_fragments = std.ArrayListUnmanaged(LayoutFragment){};
     defer line_fragments.deinit(allocator);
 
+    // Track allocated hyphenated text strings so we can free them.
+    var hyph_allocs = std.ArrayListUnmanaged([]const u8){};
+    defer {
+        for (hyph_allocs.items) |s| allocator.free(s);
+        hyph_allocs.deinit(allocator);
+    }
+
     var line_width: f32 = 0;
     var max_fs: f32 = 0;
     var is_first_line = true;
@@ -168,41 +181,146 @@ pub fn drawRichText(
         const needed = line_width + space_before + word.width;
 
         if (line_fragments.items.len > 0 and needed > available) {
-            // Finalize current line
-            const frags = try allocator.dupe(LayoutFragment, line_fragments.items);
-            try lines.append(allocator, .{
-                .fragments = frags,
-                .width = line_width,
-                .max_font_size = max_fs,
-                .y = 0, // computed later
+            // Try hyphenation before wrapping
+            var did_hyphenate = false;
+            if (options.hyphenate and word.text.len >= 5) {
+                const remaining_width = available - line_width - space_before;
+                const hyphen_width = word.font.textWidth("-", word.font_size);
+
+                const hyphenator = Hyphenator.init(options.hyphenation_language);
+                const points = try hyphenator.hyphenate(allocator, word.text);
+                defer allocator.free(points);
+
+                // Find the best break point (rightmost that fits)
+                var best_point: ?usize = null;
+                var pidx: usize = points.len;
+                while (pidx > 0) {
+                    pidx -= 1;
+                    const pt = points[pidx];
+                    const part_width = word.font.textWidth(word.text[0..pt], word.font_size) + hyphen_width;
+                    if (part_width <= remaining_width) {
+                        best_point = pt;
+                        break;
+                    }
+                }
+
+                if (best_point) |bp| {
+                    // Add space before the hyphenated fragment
+                    if (line_fragments.items.len > 0) {
+                        line_width += word.trailing_space_width;
+                    }
+
+                    // Build the first part with hyphen
+                    const first_text = try std.fmt.allocPrint(allocator, "{s}-", .{word.text[0..bp]});
+                    try hyph_allocs.append(allocator, first_text);
+
+                    const first_width = word.font.textWidth(first_text, word.font_size);
+                    try line_fragments.append(allocator, .{
+                        .span_index = word.span_index,
+                        .text = first_text,
+                        .width = first_width,
+                        .font = word.font,
+                        .font_size = word.font_size,
+                        .color = word.color,
+                        .rise = word.rise,
+                        .char_spacing = word.char_spacing,
+                        .word_spacing = word.word_spacing,
+                        .underline = word.underline,
+                        .strikethrough = word.strikethrough,
+                    });
+                    line_width += first_width;
+                    if (word.font_size > max_fs) max_fs = word.font_size;
+
+                    // Finalize the current line
+                    const frags = try allocator.dupe(LayoutFragment, line_fragments.items);
+                    try lines.append(allocator, .{
+                        .fragments = frags,
+                        .width = line_width,
+                        .max_font_size = max_fs,
+                        .y = 0,
+                    });
+                    line_fragments.clearRetainingCapacity();
+                    line_width = 0;
+                    max_fs = 0;
+                    is_first_line = false;
+
+                    // Add the remainder of the word as a new fragment on the next line
+                    const remainder = word.text[bp..];
+                    const rem_width = word.font.textWidth(remainder, word.font_size);
+                    try line_fragments.append(allocator, .{
+                        .span_index = word.span_index,
+                        .text = remainder,
+                        .width = rem_width,
+                        .font = word.font,
+                        .font_size = word.font_size,
+                        .color = word.color,
+                        .rise = word.rise,
+                        .char_spacing = word.char_spacing,
+                        .word_spacing = word.word_spacing,
+                        .underline = word.underline,
+                        .strikethrough = word.strikethrough,
+                    });
+                    line_width = rem_width;
+                    if (word.font_size > max_fs) max_fs = word.font_size;
+
+                    did_hyphenate = true;
+                }
+            }
+
+            if (!did_hyphenate) {
+                // Finalize current line
+                const frags = try allocator.dupe(LayoutFragment, line_fragments.items);
+                try lines.append(allocator, .{
+                    .fragments = frags,
+                    .width = line_width,
+                    .max_font_size = max_fs,
+                    .y = 0, // computed later
+                });
+                line_fragments.clearRetainingCapacity();
+                line_width = 0;
+                max_fs = 0;
+                is_first_line = false;
+
+                // Add the word that didn't fit to the new line
+                try line_fragments.append(allocator, .{
+                    .span_index = word.span_index,
+                    .text = word.text,
+                    .width = word.width,
+                    .font = word.font,
+                    .font_size = word.font_size,
+                    .color = word.color,
+                    .rise = word.rise,
+                    .char_spacing = word.char_spacing,
+                    .word_spacing = word.word_spacing,
+                    .underline = word.underline,
+                    .strikethrough = word.strikethrough,
+                });
+                line_width = word.width;
+                if (word.font_size > max_fs) max_fs = word.font_size;
+            }
+        } else {
+            // Add space fragment before word if not first on line
+            if (line_fragments.items.len > 0) {
+                // Add the space width to the previous fragment's effective width
+                line_width += word.trailing_space_width;
+            }
+
+            try line_fragments.append(allocator, .{
+                .span_index = word.span_index,
+                .text = word.text,
+                .width = word.width,
+                .font = word.font,
+                .font_size = word.font_size,
+                .color = word.color,
+                .rise = word.rise,
+                .char_spacing = word.char_spacing,
+                .word_spacing = word.word_spacing,
+                .underline = word.underline,
+                .strikethrough = word.strikethrough,
             });
-            line_fragments.clearRetainingCapacity();
-            line_width = 0;
-            max_fs = 0;
-            is_first_line = false;
+            line_width += word.width;
+            if (word.font_size > max_fs) max_fs = word.font_size;
         }
-
-        // Add space fragment before word if not first on line
-        if (line_fragments.items.len > 0) {
-            // Add the space width to the previous fragment's effective width
-            line_width += word.trailing_space_width;
-        }
-
-        try line_fragments.append(allocator, .{
-            .span_index = word.span_index,
-            .text = word.text,
-            .width = word.width,
-            .font = word.font,
-            .font_size = word.font_size,
-            .color = word.color,
-            .rise = word.rise,
-            .char_spacing = word.char_spacing,
-            .word_spacing = word.word_spacing,
-            .underline = word.underline,
-            .strikethrough = word.strikethrough,
-        });
-        line_width += word.width;
-        if (word.font_size > max_fs) max_fs = word.font_size;
 
         _ = wi;
     }
