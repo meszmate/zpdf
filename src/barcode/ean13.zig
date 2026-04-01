@@ -4,7 +4,7 @@ const Allocator = std.mem.Allocator;
 /// EAN-13 encoding patterns.
 /// L-codes (odd parity), G-codes (even parity), R-codes.
 /// Each digit pattern is 7 modules wide (1 = bar, 0 = space).
-const l_patterns = [10][7]u8{
+pub const l_patterns = [10][7]u8{
     .{ 0, 0, 0, 1, 1, 0, 1 }, // 0
     .{ 0, 0, 1, 1, 0, 0, 1 }, // 1
     .{ 0, 0, 1, 0, 0, 1, 1 }, // 2
@@ -30,7 +30,7 @@ const g_patterns = [10][7]u8{
     .{ 0, 0, 1, 0, 1, 1, 1 }, // 9
 };
 
-const r_patterns = [10][7]u8{
+pub const r_patterns = [10][7]u8{
     .{ 1, 1, 1, 0, 0, 1, 0 }, // 0
     .{ 1, 1, 0, 0, 1, 1, 0 }, // 1
     .{ 1, 1, 0, 1, 1, 0, 0 }, // 2

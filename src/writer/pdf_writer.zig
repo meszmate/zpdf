@@ -219,6 +219,7 @@ pub const PdfWriter = struct {
                     }
                 }
             }
+        }
         // -- Build PDF/A objects if needed --
         var pdfa_metadata_ref: ?Ref = null;
         var pdfa_output_intent_ref: ?Ref = null;
@@ -305,8 +306,8 @@ pub const PdfWriter = struct {
         return buffer.toOwnedSlice();
     }
 
-    /// Writes a PdfObject into a ByteBuffer using the object serializer.
-    fn writeObjectToBuf(buf: *ByteBuffer, obj: PdfObject) !void {
+    // Writes a PdfObject into a ByteBuffer using the object serializer.
+    fn writeObjectToBuf(buf: *ByteBuffer, obj: PdfObject) Allocator.Error!void {
         try object_serializer.writeObject(buf, obj);
     }
 };

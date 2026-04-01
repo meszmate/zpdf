@@ -199,6 +199,8 @@ pub const barcode = struct {
     pub const code128 = @import("barcode/code128.zig");
     pub const code39 = @import("barcode/code39.zig");
     pub const ean13 = @import("barcode/ean13.zig");
+    pub const ean8 = @import("barcode/ean8.zig");
+    pub const upca = @import("barcode/upca.zig");
     pub const qr_code = @import("barcode/qr/qr_code.zig");
 };
 pub const drawBarcode = barcode.barcode_api.drawBarcode;

@@ -3,6 +3,8 @@ const Allocator = std.mem.Allocator;
 const code128 = @import("code128.zig");
 const code39 = @import("code39.zig");
 const ean13 = @import("ean13.zig");
+const ean8 = @import("ean8.zig");
+const upca = @import("upca.zig");
 const qr_code = @import("qr/qr_code.zig");
 
 /// Supported barcode types.
@@ -10,6 +12,8 @@ pub const BarcodeType = enum {
     code128,
     code39,
     ean13,
+    ean8,
+    upca,
     qr,
 };
 
@@ -31,6 +35,8 @@ pub fn drawBarcode(allocator: Allocator, options: BarcodeOptions) ![]u8 {
         .code128 => try code128.render(allocator, options.value, options.x, options.y, options.width, options.height),
         .code39 => try code39.render(allocator, options.value, options.x, options.y, options.width, options.height),
         .ean13 => try ean13.render(allocator, options.value, options.x, options.y, options.width, options.height),
+        .ean8 => try ean8.render(allocator, options.value, options.x, options.y, options.width, options.height),
+        .upca => try upca.render(allocator, options.value, options.x, options.y, options.width, options.height),
         .qr => {
             var qr = try qr_code.QrCode.generate(allocator, options.value, options.qr_error_level);
             defer qr.deinit();
