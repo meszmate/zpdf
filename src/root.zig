@@ -219,6 +219,12 @@ pub const LayerBuilder = layers.LayerBuilder;
 pub const structure = @import("structure/structure_tree.zig");
 pub const StructureTree = structure.StructureTree;
 
+// ── PDF/A (Archival Conformance) ────────────────────────────────────
+pub const pdfa = @import("pdfa/pdfa.zig");
+pub const PdfAConformanceLevel = pdfa.ConformanceLevel;
+pub const PdfAOptions = pdfa.PdfAOptions;
+pub const PdfAValidationResult = pdfa.ValidationResult;
+
 // ── Parser ───────────────────────────────────────────────────────────
 pub const parser = struct {
     pub const pdf_parser = @import("parser/pdf_parser.zig");
