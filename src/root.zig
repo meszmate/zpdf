@@ -141,11 +141,17 @@ pub const FlattenOptions = form.form_filler.FlattenOptions;
 // ── Layout ──────────────────────────────────────────────────────────
 pub const layout = struct {
     pub const header_footer = @import("layout/header_footer.zig");
+    pub const columns_mod = @import("layout/columns.zig");
 };
 pub const HeaderFooter = layout.header_footer.HeaderFooter;
 pub const HFElement = layout.header_footer.HFElement;
 pub const HFContent = layout.header_footer.HFContent;
 pub const HFPosition = layout.header_footer.HFPosition;
+pub const ColumnLayout = layout.columns_mod.ColumnLayout;
+pub const ColumnContent = layout.columns_mod.ColumnContent;
+pub const TextContent = layout.columns_mod.TextContent;
+pub const RichTextContent = layout.columns_mod.RichTextContent;
+pub const columnWidth = layout.columns_mod.columnWidth;
 
 // ── Writer ───────────────────────────────────────────────────────────
 pub const writer = struct {

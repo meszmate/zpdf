@@ -8,6 +8,7 @@ const color_mod = @import("../color/color.zig");
 const Color = color_mod.Color;
 const StandardFont = @import("../font/standard_fonts.zig").StandardFont;
 const rich_text = @import("../text/rich_text.zig");
+const columns = @import("../layout/columns.zig");
 
 /// A 2D point.
 pub const Point = struct {
@@ -644,6 +645,12 @@ pub const Page = struct {
         try writer.print("/{s} Do\n", .{img_name});
 
         try writer.writeAll("Q\n");
+    }
+
+    /// Draws content across multiple columns.
+    /// Returns the height of the tallest column.
+    pub fn drawColumns(self: *Page, layout_cfg: columns.ColumnLayout, content: columns.ColumnContent) !f32 {
+        return columns.renderColumns(self, layout_cfg, content);
     }
 
     /// Writes the appropriate fill/stroke operator based on what colors are set.
