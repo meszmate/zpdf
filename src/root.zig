@@ -97,6 +97,7 @@ pub const graphics = struct {
     pub const state = @import("graphics/state.zig");
     pub const gradient_mod = @import("graphics/gradient.zig");
     pub const soft_mask_mod = @import("graphics/soft_mask.zig");
+    pub const tiling_pattern_mod = @import("graphics/tiling_pattern.zig");
 };
 pub const GfxPathBuilder = graphics.path_builder.PathBuilder;
 pub const Matrix = @import("utils/math.zig").Matrix;
@@ -110,6 +111,11 @@ pub const soft_mask = graphics.soft_mask_mod;
 pub const SoftMask = soft_mask.SoftMask;
 pub const SoftMaskType = soft_mask.SoftMaskType;
 pub const GradientMask = soft_mask.GradientMask;
+pub const tiling_pattern = graphics.tiling_pattern_mod;
+pub const TilingPattern = tiling_pattern.TilingPattern;
+pub const TilingType = tiling_pattern.TilingType;
+pub const PaintType = tiling_pattern.PaintType;
+pub const TilingPatternBuilder = tiling_pattern.PatternBuilder;
 
 // ── Text ─────────────────────────────────────────────────────────────
 pub const text = struct {
