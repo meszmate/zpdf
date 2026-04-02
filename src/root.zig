@@ -180,6 +180,7 @@ pub const layout = struct {
     pub const header_footer = @import("layout/header_footer.zig");
     pub const columns_mod = @import("layout/columns.zig");
     pub const lists = @import("layout/lists.zig");
+    pub const page_template_mod = @import("layout/page_template.zig");
 };
 pub const HeaderFooter = layout.header_footer.HeaderFooter;
 pub const HFElement = layout.header_footer.HFElement;
@@ -194,6 +195,10 @@ pub const ListStyle = layout.lists.ListStyle;
 pub const ListItem = layout.lists.ListItem;
 pub const ListOptions = layout.lists.ListOptions;
 pub const drawList = layout.lists.drawList;
+pub const PageTemplate = layout.page_template_mod.PageTemplate;
+pub const TemplateElement = layout.page_template_mod.TemplateElement;
+pub const Margins = layout.page_template_mod.Margins;
+pub const ContentArea = layout.page_template_mod.ContentArea;
 
 // ── Writer ───────────────────────────────────────────────────────────
 pub const writer = struct {
