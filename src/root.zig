@@ -98,6 +98,7 @@ pub const graphics = struct {
     pub const gradient_mod = @import("graphics/gradient.zig");
     pub const soft_mask_mod = @import("graphics/soft_mask.zig");
     pub const tiling_pattern_mod = @import("graphics/tiling_pattern.zig");
+    pub const transparency_mod = @import("graphics/transparency.zig");
 };
 pub const GfxPathBuilder = graphics.path_builder.PathBuilder;
 pub const Matrix = @import("utils/math.zig").Matrix;
@@ -116,6 +117,9 @@ pub const TilingPattern = tiling_pattern.TilingPattern;
 pub const TilingType = tiling_pattern.TilingType;
 pub const PaintType = tiling_pattern.PaintType;
 pub const TilingPatternBuilder = tiling_pattern.PatternBuilder;
+pub const transparency = graphics.transparency_mod;
+pub const BlendMode = transparency.BlendMode;
+pub const TransparencyOptions = transparency.TransparencyOptions;
 
 // ── Text ─────────────────────────────────────────────────────────────
 pub const text = struct {

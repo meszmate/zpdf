@@ -10,6 +10,9 @@ const StandardFont = @import("../font/standard_fonts.zig").StandardFont;
 const rich_text = @import("../text/rich_text.zig");
 const columns = @import("../layout/columns.zig");
 const lists = @import("../layout/lists.zig");
+const transparency_mod = @import("../graphics/transparency.zig");
+pub const TransparencyOptions = transparency_mod.TransparencyOptions;
+pub const BlendMode = transparency_mod.BlendMode;
 
 /// A 2D point.
 pub const Point = struct {
@@ -345,6 +348,15 @@ pub const Page = struct {
     /// The `gs_ref` should be a reference to an ExtGState with SMask set to None
     /// (as built by `soft_mask.buildClearSoftMask`).
     pub fn clearSoftMask(self: *Page, gs_ref: Ref) !void {
+        const gs_name = try self.addExtGState(gs_ref);
+        const writer = self.contentWriter();
+        try writer.print("/{s} gs\n", .{gs_name});
+    }
+
+    /// Sets transparency for subsequent drawing operations.
+    /// The `gs_ref` should be a reference to an ExtGState object containing
+    /// transparency parameters (as built by `transparency.buildTransparencyExtGState`).
+    pub fn setTransparency(self: *Page, gs_ref: Ref) !void {
         const gs_name = try self.addExtGState(gs_ref);
         const writer = self.contentWriter();
         try writer.print("/{s} gs\n", .{gs_name});
