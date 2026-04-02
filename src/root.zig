@@ -283,6 +283,7 @@ pub const modify = struct {
     pub const merger = @import("modify/merger.zig");
     pub const splitter = @import("modify/splitter.zig");
     pub const watermarker = @import("modify/watermarker.zig");
+    pub const stamper = @import("modify/stamper.zig");
     pub const incremental = @import("modify/incremental.zig");
     pub const redaction = @import("modify/redaction.zig");
 };
