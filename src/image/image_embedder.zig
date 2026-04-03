@@ -5,11 +5,13 @@ const ObjectStore = @import("../core/object_store.zig").ObjectStore;
 const Ref = core.Ref;
 const jpeg_handler = @import("jpeg_handler.zig");
 const png_handler = @import("png_handler.zig");
+const jpeg2000_handler = @import("jpeg2000_handler.zig");
 
 /// Supported image formats.
 pub const ImageFormat = enum {
     jpeg,
     png,
+    jpeg2000,
 };
 
 /// A handle to an embedded image in the PDF object store.
@@ -39,6 +41,20 @@ pub fn detectFormat(data: []const u8) ?ImageFormat {
         return .png;
     }
 
+    // JPEG 2000 JP2 container: starts with signature box 0x0000000C 6A502020 0D0A870A
+    if (data.len >= 12 and
+        data[0] == 0x00 and data[1] == 0x00 and data[2] == 0x00 and data[3] == 0x0C and
+        data[4] == 0x6A and data[5] == 0x50 and data[6] == 0x20 and data[7] == 0x20 and
+        data[8] == 0x0D and data[9] == 0x0A and data[10] == 0x87 and data[11] == 0x0A)
+    {
+        return .jpeg2000;
+    }
+
+    // JPEG 2000 raw codestream (J2K): starts with SOC marker 0xFF4F
+    if (data.len >= 2 and data[0] == 0xFF and data[1] == 0x4F) {
+        return .jpeg2000;
+    }
+
     return null;
 }
 
@@ -49,6 +65,7 @@ pub fn embedImage(allocator: Allocator, store: *ObjectStore, data: []const u8) !
     return switch (format) {
         .jpeg => try jpeg_handler.embedJpeg(allocator, store, data),
         .png => try png_handler.embedPng(allocator, store, data),
+        .jpeg2000 => try jpeg2000_handler.embedJpeg2000(allocator, store, data),
     };
 }
 
@@ -62,6 +79,16 @@ test "detectFormat: JPEG" {
 test "detectFormat: PNG" {
     const png_data = [_]u8{ 137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13 };
     try std.testing.expectEqual(ImageFormat.png, detectFormat(&png_data).?);
+}
+
+test "detectFormat: JPEG 2000 JP2 container" {
+    const jp2_data = [_]u8{ 0x00, 0x00, 0x00, 0x0C, 0x6A, 0x50, 0x20, 0x20, 0x0D, 0x0A, 0x87, 0x0A };
+    try std.testing.expectEqual(ImageFormat.jpeg2000, detectFormat(&jp2_data).?);
+}
+
+test "detectFormat: JPEG 2000 J2K codestream" {
+    const j2k_data = [_]u8{ 0xFF, 0x4F, 0xFF, 0x51 };
+    try std.testing.expectEqual(ImageFormat.jpeg2000, detectFormat(&j2k_data).?);
 }
 
 test "detectFormat: unknown" {
