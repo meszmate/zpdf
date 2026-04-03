@@ -59,6 +59,7 @@ pub fn build(b: *std.Build) void {
         "pdf_diff",
         "create_jpeg2000",
         "markdown_to_pdf",
+        "stream_parse",
     };
 
     for (examples) |example_name| {
@@ -138,6 +139,7 @@ pub fn build(b: *std.Build) void {
         "tests/pdf_diff_tests.zig",
         "tests/jpeg2000_tests.zig",
         "tests/markdown_tests.zig",
+        "tests/stream_parser_tests.zig",
     };
 
     const test_step = b.step("test", "Run unit tests");
