@@ -10,6 +10,8 @@ const Page = @import("page.zig").Page;
 const PageSize = @import("page_sizes.zig").PageSize;
 const StandardFont = @import("../font/standard_fonts.zig").StandardFont;
 const TrueTypeFont = @import("../font/truetype.zig").TrueTypeFont;
+const OpenTypeFont = @import("../font/opentype.zig").OpenTypeFont;
+const opentype = @import("../font/opentype.zig");
 const font_embedder = @import("../font/font_embedder.zig");
 const EmbeddedFontData = font_embedder.EmbeddedFont;
 const PdfWriter = @import("../writer/pdf_writer.zig").PdfWriter;
@@ -38,6 +40,13 @@ pub const FontHandle = struct {
 pub const TrueTypeFontHandle = struct {
     ref: Ref,
     font: *TrueTypeFont,
+    name: []const u8,
+};
+
+/// Handle to an OpenType CFF font resource within the document.
+pub const OpenTypeFontHandle = struct {
+    ref: Ref,
+    font: *OpenTypeFont,
     name: []const u8,
 };
 
@@ -99,6 +108,7 @@ pub const Document = struct {
     header: ?HeaderFooter,
     footer: ?HeaderFooter,
     tt_fonts: ArrayList(*TrueTypeFont),
+    ot_fonts: ArrayList(*OpenTypeFont),
     embedded_font_data: ArrayList(EmbeddedFontData),
     attachment_builder: ?AttachmentBuilder,
 
@@ -126,6 +136,7 @@ pub const Document = struct {
             .header = null,
             .footer = null,
             .tt_fonts = .{},
+            .ot_fonts = .{},
             .embedded_font_data = .{},
             .attachment_builder = null,
         };
@@ -160,6 +171,11 @@ pub const Document = struct {
             self.allocator.destroy(tt_font);
         }
         self.tt_fonts.deinit(self.allocator);
+        for (self.ot_fonts.items) |ot_font| {
+            @constCast(ot_font).deinit();
+            self.allocator.destroy(ot_font);
+        }
+        self.ot_fonts.deinit(self.allocator);
         if (self.attachment_builder) |*ab| {
             ab.deinit();
         }
@@ -349,6 +365,42 @@ pub const Document = struct {
             .font = tt_font,
             .name = embedded.name,
         };
+    }
+
+    /// Load and register an OpenType CFF font from raw font data.
+    pub fn loadOpenTypeFont(self: *Document, font_data: []const u8) !OpenTypeFontHandle {
+        const ot_font = try self.allocator.create(OpenTypeFont);
+        errdefer self.allocator.destroy(ot_font);
+
+        ot_font.* = try OpenTypeFont.init(self.allocator, font_data);
+        errdefer ot_font.deinit();
+
+        const used_chars = [_]u32{};
+        var embedded = try font_embedder.embedOpenTypeFont(self.allocator, &self.object_store, ot_font, &used_chars);
+        errdefer embedded.deinit();
+
+        const pdf_name = ot_font.postscript_name;
+        try self.font_refs.put(self.allocator, pdf_name, embedded.ref);
+        try self.ot_fonts.append(self.allocator, ot_font);
+        try self.embedded_font_data.append(self.allocator, embedded);
+
+        return OpenTypeFontHandle{
+            .ref = embedded.ref,
+            .font = ot_font,
+            .name = embedded.name,
+        };
+    }
+
+    /// Auto-detect font type and load accordingly.
+    /// Detects OpenType CFF fonts (sfVersion 'OTTO') vs TrueType fonts.
+    pub fn loadFont(self: *Document, font_data: []const u8) !Ref {
+        if (opentype.isCffFont(font_data)) {
+            const handle = try self.loadOpenTypeFont(font_data);
+            return handle.ref;
+        } else {
+            const handle = try self.loadTrueTypeFont(font_data);
+            return handle.ref;
+        }
     }
 
     /// Serializes the entire document to PDF bytes.

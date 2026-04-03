@@ -91,12 +91,15 @@ pub const hexColor = color.hexColor;
 pub const standard_fonts = @import("font/standard_fonts.zig");
 pub const font_manager = @import("font/font_manager.zig");
 pub const truetype = @import("font/truetype.zig");
+pub const opentype = @import("font/opentype.zig");
 pub const font_subsetter = @import("font/font_subsetter.zig");
 pub const font_embedder = @import("font/font_embedder.zig");
 pub const StandardFont = standard_fonts.StandardFont;
 pub const FontHandle = font_manager.FontHandle;
 pub const TrueTypeFont = truetype.TrueTypeFont;
+pub const OpenTypeFont = opentype.OpenTypeFont;
 pub const TrueTypeFontHandle = document.doc.TrueTypeFontHandle;
+pub const OpenTypeFontHandle = document.doc.OpenTypeFontHandle;
 
 // ── Graphics ─────────────────────────────────────────────────────────
 pub const graphics = struct {
