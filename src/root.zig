@@ -334,6 +334,7 @@ pub const Invoice = generators.invoice.Invoice;
 pub const InvoiceItem = generators.invoice.InvoiceItem;
 pub const CompanyInfo = generators.invoice.CompanyInfo;
 pub const InvoiceOptions = generators.invoice.InvoiceOptions;
+pub const InvoiceColors = generators.invoice.InvoiceColors;
 
 // ── Parser ───────────────────────────────────────────────────────────
 pub const parser = struct {
