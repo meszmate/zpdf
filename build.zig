@@ -47,6 +47,7 @@ pub fn build(b: *std.Build) void {
         "linearization",
         "tiling_patterns",
         "transparency",
+        "page_templates",
     };
 
     for (examples) |example_name| {
@@ -114,6 +115,7 @@ pub fn build(b: *std.Build) void {
         "tests/linearization_tests.zig",
         "tests/tiling_pattern_tests.zig",
         "tests/transparency_tests.zig",
+        "tests/template_tests.zig",
     };
 
     const test_step = b.step("test", "Run unit tests");

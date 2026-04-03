@@ -463,10 +463,6 @@ pub const PdfWriter = struct {
         return buffer.toOwnedSlice();
     }
 
-    // Writes a PdfObject into a ByteBuffer using the object serializer.
-    fn writeObjectToBuf(buf: *ByteBuffer, obj: PdfObject) !void {
-        try object_serializer.writeObject(buf, obj);
-    }
 };
 
 // Recursively remap indirect references within a PdfObject to use new object numbers.

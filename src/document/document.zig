@@ -15,6 +15,7 @@ const EmbeddedFontData = font_embedder.EmbeddedFont;
 const PdfWriter = @import("../writer/pdf_writer.zig").PdfWriter;
 const stream_writer = @import("../writer/stream_writer.zig");
 const HeaderFooter = @import("../layout/header_footer.zig").HeaderFooter;
+const PageTemplate = @import("../layout/page_template.zig").PageTemplate;
 const ConformanceLevel = @import("../pdfa/pdfa.zig").ConformanceLevel;
 const attachments_mod = @import("attachments.zig");
 pub const Attachment = attachments_mod.Attachment;
@@ -242,6 +243,15 @@ pub const Document = struct {
         const page = try self.allocator.create(Page);
         page.* = Page.init(self.allocator, dims.width, dims.height);
         try self.pages.insert(self.allocator, index, page);
+        return page;
+    }
+
+    /// Creates a new page from a template and applies all template elements.
+    /// The page_number is passed to the template for placeholder substitution.
+    pub fn addPageFromTemplate(self: *Document, template: *const PageTemplate, page_number: usize) !*Page {
+        const dims = template.page_size.dimensions();
+        const page = try self.addPageWithDimensions(dims.width, dims.height);
+        try template.apply(page, page_number);
         return page;
     }
 
