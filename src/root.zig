@@ -345,8 +345,15 @@ pub const parser = struct {
     pub const tokenizer = @import("parser/tokenizer.zig");
     pub const text_extractor = @import("parser/text_extractor.zig");
     pub const validator = @import("parser/validator.zig");
+    pub const pdf_diff = @import("parser/pdf_diff.zig");
 };
 pub const parsePdf = parser.pdf_parser.parsePdf;
+pub const DiffType = parser.pdf_diff.DiffType;
+pub const PageDiff = parser.pdf_diff.PageDiff;
+pub const MetadataDiff = parser.pdf_diff.MetadataDiff;
+pub const TextDiff = parser.pdf_diff.TextDiff;
+pub const DiffResult = parser.pdf_diff.DiffResult;
+pub const diffPdfs = parser.pdf_diff.diffPdfs;
 pub const ExtractedText = parser.text_extractor.ExtractedText;
 pub const ExtractionOptions = parser.text_extractor.ExtractionOptions;
 pub const validatePdf = parser.validator.validatePdf;
