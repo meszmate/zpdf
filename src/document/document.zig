@@ -278,6 +278,8 @@ pub const Document = struct {
             self.attachment_builder = AttachmentBuilder.init(self.allocator);
         }
         try self.attachment_builder.?.addAttachment(attachment);
+    }
+
     /// Adds a named destination to the document.
     pub fn addNamedDestination(self: *Document, dest: Destination) !void {
         try self.named_destinations.append(self.allocator, dest);
