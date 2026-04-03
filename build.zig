@@ -54,6 +54,7 @@ pub fn build(b: *std.Build) void {
         "fluent_api",
         "validate_pdf",
         "report_builder",
+        "invoice",
     };
 
     for (examples) |example_name| {
@@ -128,6 +129,7 @@ pub fn build(b: *std.Build) void {
         "tests/builder_tests.zig",
         "tests/validator_tests.zig",
         "tests/report_tests.zig",
+        "tests/invoice_tests.zig",
     };
 
     const test_step = b.step("test", "Run unit tests");

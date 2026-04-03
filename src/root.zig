@@ -271,6 +271,7 @@ pub const barcode = struct {
 };
 pub const drawBarcode = barcode.barcode_api.drawBarcode;
 
+
 // ── Annotation ───────────────────────────────────────────────────────
 pub const annotation = @import("annotation/annotation.zig");
 pub const Annotation = annotation.Annotation;
@@ -313,10 +314,12 @@ pub const PdfAConformanceLevel = pdfa.ConformanceLevel;
 pub const PdfAOptions = pdfa.PdfAOptions;
 pub const PdfAValidationResult = pdfa.ValidationResult;
 
+
 // ── Generators ──────────────────────────────────────────────────────
 pub const generators = struct {
     pub const mail_merge = @import("generators/mail_merge.zig");
     pub const report = @import("generators/report.zig");
+    pub const invoice = @import("generators/invoice.zig");
 };
 pub const MailMerge = generators.mail_merge.MailMerge;
 pub const MergeField = generators.mail_merge.MergeField;
@@ -327,6 +330,10 @@ pub const replacePlaceholders = generators.mail_merge.replacePlaceholders;
 pub const Report = generators.report.Report;
 pub const ReportOptions = generators.report.ReportOptions;
 pub const ReportSection = generators.report.ReportSection;
+pub const Invoice = generators.invoice.Invoice;
+pub const InvoiceItem = generators.invoice.InvoiceItem;
+pub const CompanyInfo = generators.invoice.CompanyInfo;
+pub const InvoiceOptions = generators.invoice.InvoiceOptions;
 
 // ── Parser ───────────────────────────────────────────────────────────
 pub const parser = struct {
