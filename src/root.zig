@@ -309,8 +309,11 @@ pub const PdfAValidationResult = pdfa.ValidationResult;
 pub const parser = struct {
     pub const pdf_parser = @import("parser/pdf_parser.zig");
     pub const tokenizer = @import("parser/tokenizer.zig");
+    pub const text_extractor = @import("parser/text_extractor.zig");
 };
 pub const parsePdf = parser.pdf_parser.parsePdf;
+pub const ExtractedText = parser.text_extractor.ExtractedText;
+pub const ExtractionOptions = parser.text_extractor.ExtractionOptions;
 
 test {
     std.testing.refAllDeclsRecursive(@This());
