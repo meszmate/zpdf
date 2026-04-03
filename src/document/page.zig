@@ -317,6 +317,13 @@ pub const Page = struct {
         try writer.print("/{s} scn\n", .{pattern_name});
     }
 
+    /// Sets the fill color to a tiling pattern. Writes `/Pattern cs /name scn` to the content stream.
+    pub fn setPatternFill(self: *Page, pattern_name: []const u8) !void {
+        const writer = self.contentWriter();
+        try writer.writeAll("/Pattern cs\n");
+        try writer.print("/{s} scn\n", .{pattern_name});
+    }
+
     /// Registers an ExtGState resource on this page and returns the resource name (e.g. "GS1").
     pub fn addExtGState(self: *Page, ref: Ref) ![]const u8 {
         self.resources.gs_count += 1;
