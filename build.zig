@@ -57,6 +57,7 @@ pub fn build(b: *std.Build) void {
         "report_builder",
         "invoice",
         "pdf_diff",
+        "create_jpeg2000",
     };
 
     for (examples) |example_name| {
@@ -134,6 +135,7 @@ pub fn build(b: *std.Build) void {
         "tests/report_tests.zig",
         "tests/invoice_tests.zig",
         "tests/pdf_diff_tests.zig",
+        "tests/jpeg2000_tests.zig",
     };
 
     const test_step = b.step("test", "Run unit tests");

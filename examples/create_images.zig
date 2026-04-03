@@ -51,6 +51,7 @@ pub fn main() !void {
         const fmt_name: []const u8 = switch (fmt) {
             .jpeg => "JPEG",
             .png => "PNG",
+            .jpeg2000 => "JPEG2000",
         };
         std.debug.print("Detected image format: {s}\n", .{fmt_name});
     }

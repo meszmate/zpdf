@@ -155,6 +155,7 @@ pub const freeTextLines = text.text_layout.freeTextLines;
 pub const image = struct {
     pub const jpeg_handler = @import("image/jpeg_handler.zig");
     pub const png_handler = @import("image/png_handler.zig");
+    pub const jpeg2000_handler = @import("image/jpeg2000_handler.zig");
     pub const image_embedder = @import("image/image_embedder.zig");
 };
 pub const EmbedImageHandle = image.image_embedder.ImageHandle;
