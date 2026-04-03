@@ -44,8 +44,16 @@ pub const document = struct {
     pub const page_sizes = @import("document/page_sizes.zig");
     pub const attachments = @import("document/attachments.zig");
     pub const destinations = @import("document/destinations.zig");
+    pub const builder_mod = @import("document/builder.zig");
 };
 pub const Document = document.doc.Document;
+pub const DocumentBuilder = document.builder_mod.DocumentBuilder;
+pub const PageBuilder = document.builder_mod.PageBuilder;
+
+/// Create a DocumentBuilder for fluent/chainable PDF construction.
+pub fn build(allocator: std.mem.Allocator) DocumentBuilder {
+    return DocumentBuilder.init(allocator);
+}
 pub const Page = document.page.Page;
 pub const PageSize = document.page_sizes.PageSize;
 pub const ImageHandle = document.page.ImageHandle;
