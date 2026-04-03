@@ -324,6 +324,7 @@ pub const generators = struct {
     pub const mail_merge = @import("generators/mail_merge.zig");
     pub const report = @import("generators/report.zig");
     pub const invoice = @import("generators/invoice.zig");
+    pub const markdown = @import("generators/markdown.zig");
 };
 pub const MailMerge = generators.mail_merge.MailMerge;
 pub const MergeField = generators.mail_merge.MergeField;
@@ -339,6 +340,8 @@ pub const InvoiceItem = generators.invoice.InvoiceItem;
 pub const CompanyInfo = generators.invoice.CompanyInfo;
 pub const InvoiceOptions = generators.invoice.InvoiceOptions;
 pub const InvoiceColors = generators.invoice.InvoiceColors;
+pub const MarkdownRenderer = generators.markdown.MarkdownRenderer;
+pub const MarkdownOptions = generators.markdown.MarkdownOptions;
 
 // ── Parser ───────────────────────────────────────────────────────────
 pub const parser = struct {
