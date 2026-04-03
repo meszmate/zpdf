@@ -50,6 +50,7 @@ pub fn build(b: *std.Build) void {
         "page_templates",
         "page_stamping",
         "text_extraction",
+        "mail_merge",
     };
 
     for (examples) |example_name| {
@@ -120,6 +121,7 @@ pub fn build(b: *std.Build) void {
         "tests/template_tests.zig",
         "tests/stamper_tests.zig",
         "tests/text_extractor_tests.zig",
+        "tests/mail_merge_tests.zig",
     };
 
     const test_step = b.step("test", "Run unit tests");
