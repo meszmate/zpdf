@@ -62,6 +62,7 @@ pub fn build(b: *std.Build) void {
         "stream_parse",
         "icc_profiles",
         "javascript_forms",
+        "multimedia_annotations",
     };
 
     for (examples) |example_name| {
@@ -144,6 +145,7 @@ pub fn build(b: *std.Build) void {
         "tests/stream_parser_tests.zig",
         "tests/icc_profile_tests.zig",
         "tests/javascript_tests.zig",
+        "tests/multimedia_annotation_tests.zig",
     };
 
     const test_step = b.step("test", "Run unit tests");

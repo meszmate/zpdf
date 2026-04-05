@@ -283,8 +283,25 @@ pub const drawBarcode = barcode.barcode_api.drawBarcode;
 
 
 // ── Annotation ───────────────────────────────────────────────────────
-pub const annotation = @import("annotation/annotation.zig");
+pub const annotation = struct {
+    const base = @import("annotation/annotation.zig");
+    pub const multimedia = @import("annotation/multimedia.zig");
+
+    pub const AnnotationType = base.AnnotationType;
+    pub const Annotation = base.Annotation;
+    pub const Rect = base.Rect;
+    pub const Color = base.Color;
+    pub const buildAnnotation = base.buildAnnotation;
+};
 pub const Annotation = annotation.Annotation;
+pub const SoundAnnotation = annotation.multimedia.SoundAnnotation;
+pub const SoundEncoding = annotation.multimedia.SoundEncoding;
+pub const ScreenAnnotation = annotation.multimedia.ScreenAnnotation;
+pub const MediaActivation = annotation.multimedia.MediaActivation;
+pub const RichMediaAnnotation = annotation.multimedia.RichMediaAnnotation;
+pub const buildSoundAnnotation = annotation.multimedia.buildSoundAnnotation;
+pub const buildScreenAnnotation = annotation.multimedia.buildScreenAnnotation;
+pub const buildRichMediaAnnotation = annotation.multimedia.buildRichMediaAnnotation;
 
 // ── Actions (JavaScript) ─────────────────────────────────────────────
 pub const actions = struct {
