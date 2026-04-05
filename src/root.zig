@@ -81,11 +81,17 @@ pub const ObjectStore = core.object_store.ObjectStore;
 // ── Color ────────────────────────────────────────────────────────────
 pub const color = @import("color/color.zig");
 pub const color_conversion = @import("color/conversion.zig");
+pub const icc_profile = @import("color/icc_profile.zig");
 pub const Color = color.Color;
 pub const rgb = color.rgb;
 pub const cmyk = color.cmyk;
 pub const grayscale = color.grayscale;
 pub const hexColor = color.hexColor;
+pub const IccProfile = icc_profile.IccProfile;
+pub const IccColorSpace = icc_profile.IccColorSpace;
+pub const loadIccProfile = icc_profile.loadIccProfile;
+pub const embedIccProfile = icc_profile.embedIccProfile;
+pub const SRGB_ICC_PROFILE = icc_profile.SRGB_PROFILE;
 
 // ── Font ─────────────────────────────────────────────────────────────
 pub const standard_fonts = @import("font/standard_fonts.zig");
