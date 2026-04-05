@@ -286,6 +286,18 @@ pub const drawBarcode = barcode.barcode_api.drawBarcode;
 pub const annotation = @import("annotation/annotation.zig");
 pub const Annotation = annotation.Annotation;
 
+// ── Actions (JavaScript) ─────────────────────────────────────────────
+pub const actions = struct {
+    pub const javascript = @import("actions/javascript.zig");
+};
+pub const ActionTrigger = actions.javascript.ActionTrigger;
+pub const FormFieldAction = actions.javascript.FormFieldAction;
+pub const JsAction = actions.javascript.JsAction;
+pub const TriggerScript = actions.javascript.TriggerScript;
+pub const JavaScriptBuilder = actions.javascript.JavaScriptBuilder;
+pub const buildJsAction = actions.javascript.buildJsAction;
+pub const buildDocumentActions = actions.javascript.buildDocumentActions;
+
 // ── Outline (Bookmarks) ─────────────────────────────────────────────
 pub const outline = @import("outline/outline.zig");
 pub const OutlineTree = outline.OutlineTree;
