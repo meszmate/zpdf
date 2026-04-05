@@ -342,6 +342,14 @@ pub const MetadataUpdate = modify.incremental.MetadataUpdate;
 // ── Layers (Optional Content) ───────────────────────────────────────
 pub const layers = @import("layers/layer_builder.zig");
 pub const LayerBuilder = layers.LayerBuilder;
+pub const ocg = @import("layers/ocg.zig");
+pub const OcgBuilder = ocg.OcgBuilder;
+pub const OcgLayer = ocg.OcgLayer;
+pub const OcgIntent = ocg.OcgIntent;
+pub const PrintVisibility = ocg.PrintVisibility;
+pub const OcgLayerHandle = ocg.LayerHandle;
+pub const OcgLayerOptions = ocg.LayerOptions;
+pub const OcgDefaultState = ocg.DefaultState;
 
 // ── Structure (Tagged PDF / Accessibility) ──────────────────────────
 pub const structure = @import("structure/structure_tree.zig");

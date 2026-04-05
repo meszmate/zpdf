@@ -63,6 +63,7 @@ pub fn build(b: *std.Build) void {
         "icc_profiles",
         "javascript_forms",
         "multimedia_annotations",
+        "ocg_layers",
     };
 
     for (examples) |example_name| {
@@ -146,6 +147,7 @@ pub fn build(b: *std.Build) void {
         "tests/icc_profile_tests.zig",
         "tests/javascript_tests.zig",
         "tests/multimedia_annotation_tests.zig",
+        "tests/ocg_tests.zig",
     };
 
     const test_step = b.step("test", "Run unit tests");

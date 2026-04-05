@@ -85,6 +85,16 @@ pub const PdfWriter = struct {
             try font_name_to_ref.put(allocator, pdf_name, ref);
         }
 
+        // -- Pre-allocate remapped refs for every object in doc.object_store.
+        // This lets page resources (e.g. OCG /Properties entries) refer to
+        // those objects before they are copied below.
+        var doc_ref_map = std.AutoHashMapUnmanaged(u32, Ref){};
+        defer doc_ref_map.deinit(allocator);
+        for (doc.object_store.objects.items) |entry| {
+            const new_ref = try store.allocate();
+            try doc_ref_map.put(allocator, entry.ref.obj_num, new_ref);
+        }
+
         // -- Build page objects --
         var page_refs: ArrayList(Ref) = .{};
         defer page_refs.deinit(allocator);
@@ -134,6 +144,16 @@ pub const PdfWriter = struct {
                 }
             }
 
+            // Build Properties (optional content) resource dict for this page.
+            // Layer refs live in doc.object_store and are remapped via doc_ref_map.
+            var properties_dict = types.pdfDict(allocator);
+            {
+                for (page.resources.properties.items) |prop| {
+                    const mapped = doc_ref_map.get(prop.ref.obj_num) orelse prop.ref;
+                    try properties_dict.dict_obj.put(allocator, prop.name, types.pdfRef(mapped.obj_num, mapped.gen_num));
+                }
+            }
+
             // Build resources dict
             var resources_dict = types.pdfDict(allocator);
             if (font_dict.dict_obj.count() > 0) {
@@ -150,6 +170,11 @@ pub const PdfWriter = struct {
                 try resources_dict.dict_obj.put(allocator, "ExtGState", gs_dict);
             } else {
                 gs_dict.deinit(allocator);
+            }
+            if (properties_dict.dict_obj.count() > 0) {
+                try resources_dict.dict_obj.put(allocator, "Properties", properties_dict);
+            } else {
+                properties_dict.deinit(allocator);
             }
 
             // Build page dict (parent will be set after we know pages_ref)
@@ -257,28 +282,18 @@ pub const PdfWriter = struct {
             }
         }
 
-        // -- Copy AcroForm objects from document object store --
-        // The FormBuilder stores field objects and the AcroForm dict in doc.object_store.
-        // We need to copy them into the writer's store with remapped object numbers.
+        // -- Copy objects from document object store --
+        // The FormBuilder, OcgBuilder, and other subsystems stash objects in
+        // doc.object_store. Their new refs were pre-allocated above so pages
+        // can reference them; here we actually copy each object, remapping
+        // any internal references.
         var acroform_new_ref: ?Ref = null;
         {
-            // Build a mapping from old obj_num to new Ref
-            var ref_map = std.AutoHashMapUnmanaged(u32, Ref){};
-            defer ref_map.deinit(allocator);
-
-            // First pass: allocate new refs for all doc.object_store objects
             for (doc.object_store.objects.items) |entry| {
-                const new_ref = try store.allocate();
-                try ref_map.put(allocator, entry.ref.obj_num, new_ref);
-            }
-
-            // Second pass: copy objects, remapping internal references
-            for (doc.object_store.objects.items) |entry| {
-                const new_ref = ref_map.get(entry.ref.obj_num).?;
+                const new_ref = doc_ref_map.get(entry.ref.obj_num).?;
 
                 if (entry.object) |obj| {
-                    // Remap references within this object
-                    const remapped = try remapRefsAuto(allocator, obj, &ref_map);
+                    const remapped = try remapRefsAuto(allocator, obj, &doc_ref_map);
                     store.put(new_ref, remapped);
 
                     // Check if this is the AcroForm dictionary (has "Fields" key)
@@ -329,6 +344,13 @@ pub const PdfWriter = struct {
             try catalog_dict.dict_obj.put(allocator,"Pages", types.pdfRef(pages_ref.obj_num, pages_ref.gen_num));
             if (acroform_new_ref) |af_ref| {
                 try catalog_dict.dict_obj.put(allocator,"AcroForm", types.pdfRef(af_ref.obj_num, af_ref.gen_num));
+            }
+
+            // Optional Content Properties (layers), remapped from doc.object_store.
+            if (doc.oc_properties_ref) |ocp| {
+                if (doc_ref_map.get(ocp.obj_num)) |mapped| {
+                    try catalog_dict.dict_obj.put(allocator, "OCProperties", types.pdfRef(mapped.obj_num, mapped.gen_num));
+                }
             }
 
             // Add attachment names to catalog

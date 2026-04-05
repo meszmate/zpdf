@@ -13,6 +13,8 @@ const lists = @import("../layout/lists.zig");
 const transparency_mod = @import("../graphics/transparency.zig");
 pub const TransparencyOptions = transparency_mod.TransparencyOptions;
 pub const BlendMode = transparency_mod.BlendMode;
+const ocg_mod = @import("../layers/ocg.zig");
+const LayerHandle = ocg_mod.LayerHandle;
 
 /// A 2D point.
 pub const Point = struct {
@@ -51,17 +53,25 @@ pub const ExtGStateResource = struct {
     name: []const u8,
 };
 
+/// A Properties (optional content) resource registered on a page.
+pub const PropertiesResource = struct {
+    ref: Ref,
+    name: []const u8,
+};
+
 /// Page-level resources (fonts, images, patterns, ExtGState, etc.).
 pub const Resources = struct {
     fonts: StringHashMap(FontResource),
     images: ArrayList(ImageResource),
     patterns: StringHashMap(PatternResource),
     ext_g_states: ArrayList(ExtGStateResource),
+    properties: ArrayList(PropertiesResource),
     allocator: Allocator,
     font_count: u32,
     image_count: u32,
     pattern_count: u32,
     gs_count: u32,
+    prop_count: u32,
 
     pub fn init(allocator: Allocator) Resources {
         return .{
@@ -69,11 +79,13 @@ pub const Resources = struct {
             .images = .{},
             .patterns = .{},
             .ext_g_states = .{},
+            .properties = .{},
             .allocator = allocator,
             .font_count = 0,
             .image_count = 0,
             .pattern_count = 0,
             .gs_count = 0,
+            .prop_count = 0,
         };
     }
 
@@ -93,6 +105,10 @@ pub const Resources = struct {
             self.allocator.free(gs.name);
         }
         self.ext_g_states.deinit(self.allocator);
+        for (self.properties.items) |p| {
+            self.allocator.free(p.name);
+        }
+        self.properties.deinit(self.allocator);
     }
 };
 
@@ -325,6 +341,31 @@ pub const Page = struct {
         const writer = self.contentWriter();
         try writer.writeAll("/Pattern cs\n");
         try writer.print("/{s} scn\n", .{pattern_name});
+    }
+
+    /// Registers an optional content (OCG) reference on this page's
+    /// `/Properties` resource dict and returns the resource name (e.g. "OC1").
+    pub fn addProperties(self: *Page, ref: Ref) ![]const u8 {
+        self.resources.prop_count += 1;
+        const name = try std.fmt.allocPrint(self.allocator, "OC{d}", .{self.resources.prop_count});
+        try self.resources.properties.append(self.allocator, .{ .ref = ref, .name = name });
+        return name;
+    }
+
+    /// Begin an optional content sequence backed by the given OCG. The builder
+    /// must have had `build` called so the layer has a resolved object
+    /// reference. Writes `/OC /<name> BDC` to the content stream.
+    pub fn beginLayer(self: *Page, builder: *const ocg_mod.OcgBuilder, handle: LayerHandle) !void {
+        const layer_ref = try builder.layerRef(handle);
+        const name = try self.addProperties(layer_ref);
+        const writer = self.contentWriter();
+        try writer.print("/OC /{s} BDC\n", .{name});
+    }
+
+    /// End the most recently started optional content sequence by writing `EMC`.
+    pub fn endLayer(self: *Page) !void {
+        const writer = self.contentWriter();
+        try writer.writeAll("EMC\n");
     }
 
     /// Registers an ExtGState resource on this page and returns the resource name (e.g. "GS1").
