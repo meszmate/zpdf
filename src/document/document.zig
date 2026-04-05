@@ -111,6 +111,7 @@ pub const Document = struct {
     ot_fonts: ArrayList(*OpenTypeFont),
     embedded_font_data: ArrayList(EmbeddedFontData),
     attachment_builder: ?AttachmentBuilder,
+    oc_properties_ref: ?Ref,
 
     /// Creates a new empty PDF document.
     pub fn init(allocator: Allocator) Document {
@@ -139,7 +140,20 @@ pub const Document = struct {
             .ot_fonts = .{},
             .embedded_font_data = .{},
             .attachment_builder = null,
+            .oc_properties_ref = null,
         };
+    }
+
+    /// Returns a pointer to the internal object store, for use by subsystems
+    /// that allocate their own PDF objects (fonts, layers, attachments, …).
+    pub fn objectStore(self: *Document) *ObjectStore {
+        return &self.object_store;
+    }
+
+    /// Register an `/OCProperties` dictionary reference produced by
+    /// `OcgBuilder.build`. The writer will emit it on the catalog during save.
+    pub fn setOcProperties(self: *Document, ref: Ref) void {
+        self.oc_properties_ref = ref;
     }
 
     /// Frees all document resources including pages and stored objects.
